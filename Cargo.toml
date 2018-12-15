@@ -1,0 +1,10 @@
+[package]
+name = "shoppinglist"
+version = "0.1.0"
+authors = ["Nexuz <nexxuz0@googlemail.com>"]
+
+[dependencies]
+telegram-bot = "0.6.1"
+tokio = "0.1.13"
+futures = "0.1.25"
+tokio-core = "0.1.17"
