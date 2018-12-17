@@ -1,0 +1,14 @@
+image: archlinux
+packages:
+  - rustup
+  - openssl
+  - pkg-config
+sources:
+  - https://git.sr.ht/~nexxuz/shoppinglist
+tasks:
+  - setup: |
+      rustup toolchain install nightly
+      rustup default nightly
+  - build: |
+      cd shoppinglist
+      cargo build
