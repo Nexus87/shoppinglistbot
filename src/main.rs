@@ -5,11 +5,12 @@ extern crate tokio_core;
 use futures::Stream;
 use tokio_core::reactor::Core;
 use telegram_bot::*;
+use std::env;
 
 fn main() {
     let mut core = Core::new().unwrap();
 
-    let token = "699216928:AAHZMt-K1AKZIcT2xgnpbK59iGSa1xNEfs8";
+    let token = env::var("TELEGRAM_BOT_TOKEN").unwrap();
     let api = Api::configure(token).build(core.handle()).unwrap();
 
     let future = api.stream().for_each(|update| {
