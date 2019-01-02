@@ -1,0 +1,11 @@
+[package]
+name = "shoppinglist"
+version = "0.1.0"
+authors = ["Nexuz <nexxuz0@googlemail.com>"]
+
+[dependencies]
+telegram-bot = { git = "https://github.com/Nexus87/telegram-bot" }
+tokio = "0.1.13"
+futures = "0.1.25"
+tokio-core = "0.1.17"
+todoist = { version = "=0.1.0", path = "../todoist" }
