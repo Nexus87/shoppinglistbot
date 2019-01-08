@@ -32,6 +32,7 @@ fn main() {
             .map(|x| x.parse::<Integer>().unwrap())
             .map(From::from)
             .collect();
+
     let api = Api::configure(token).build().unwrap();
     let mut message_handler = build_handler(todoist_token,project_id);
     let future = api.stream()

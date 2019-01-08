@@ -103,4 +103,8 @@ impl<T> Command<T> where T: Serialize {
             uuid: Uuid::new_v4()
         }
     }
+
+    pub fn new_add_task(args: T) -> Self {
+        Self::new(CommandType::AddTask, args)
+    }
 }

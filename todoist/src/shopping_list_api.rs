@@ -14,7 +14,6 @@ use types::{
     requests::{
         Task,
         Command,
-        CommandType,
         WriteResource
     },
     primitives::Integer,
@@ -63,7 +62,11 @@ impl TodoistApi {
 
 pub trait ShoppingListApi {
     fn get_projects(&self) -> Box<Future<Item=GetProjectsResponse, Error=hyper::Error>>;
-    fn add_task(&self, text: &String, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send>;
+    fn add_tasks(&self, texts: &Vec<String>, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send>;
+    fn add_task(&self, text: &String, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+        let texts = vec![text.clone()];
+        self.add_tasks(&texts, project_id)
+    }
 }
 
 impl ShoppingListApi for TodoistApi {
@@ -83,10 +86,13 @@ impl ShoppingListApi for TodoistApi {
         Box::new(result)
     }
 
-    fn add_task(&self, text: &String, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
-        let item = Task::new(text, project_id);
-        let command = Command::new(CommandType::AddTask, item);
-        let request = WriteResource::new(&vec![command], &self.token).unwrap();
+    fn add_tasks(&self, texts: &Vec<String>, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+        let commands: Vec<Command<Task>> = texts.iter()
+            .map(|x| Task::new(x, project_id))
+            .map(Command::new_add_task)
+            .collect();
+
+        let request = WriteResource::new(&commands, &self.token).unwrap();
         Box::new(self.make_request(&request).map(|_| ()))
     }
 }
