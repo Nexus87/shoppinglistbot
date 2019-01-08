@@ -1,48 +1,94 @@
-use std::collections::HashMap;
-use handler::CommandHandler;
-use handler::Commands;
 use telegram_bot::types::Message;
 use telegram_bot::types::MessageKind;
+use super::einkaufen_handler::EinkaufenCommandHandler;
+use todoist::shopping_list_api::TodoistApi;
+use handler::CommandHandler;
 
-pub struct MessageHandlerBuilder {
-    handler: HashMap<Commands, Box<CommandHandler>>
+#[derive(PartialEq, Eq, Hash, Debug)]
+pub enum Command {
+    Config,
+    Einkaufen,
+    None
 }
+
+impl From<&str> for Command {
+    fn from(s: &str) -> Self {
+        match s {
+            "/config" => Command::Config,
+            "/einkaufen" => Command::Einkaufen,
+            _ => Command::None
+        }
+    }
+}
+
+fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
+    if let MessageKind::Text {ref data, ..} = message {
+        let split: Vec<&str> = data.splitn(2, " ").collect();
+        let command  = Command::from(*split.get(0)?);
+        let args = match command {
+            Command::None => data.clone(),
+            _ => split.get(1)
+                .map(|x| *x)
+                .unwrap_or_default().to_string()
+        };
+
+        return Some((command, args));
+    }
+    None
+}
+
 pub struct MessageHandler {
-    handler: HashMap<Commands, Box<CommandHandler>>
+    einkaufen_handler: EinkaufenCommandHandler
 }
 
 impl MessageHandler {
-    pub fn build() -> MessageHandlerBuilder {
-        {
-            MessageHandlerBuilder {
-                handler: HashMap::new()
-            }
+    pub fn new(token: String, project_id: i64) -> Self {
+        let api = TodoistApi::new(token);
+        MessageHandler {
+            einkaufen_handler: EinkaufenCommandHandler::new(api, project_id)
         }
     }
 
-    pub fn handle(&mut self, message: Message) {
-        if let MessageKind::Text{ref data, ..} = message.kind {
-            let split: Vec<&str> = data.split_whitespace().collect();
-            if let Some(&cmd) = split.get(0).filter(|x| x.starts_with('/')) {
-                let cmd = Commands::from(cmd);
-                if let Some(handler) = self.handler.get_mut(&cmd) {
-                    let cmd_args = split[1..].join(" ");
-                    handler.handle_message(&cmd_args);
-                }
+
+    pub fn handle(&mut self, message: &Message) {
+        if let Some((command, args)) = parse_message(&message.kind) {
+            match command {
+                Command::Einkaufen => self.einkaufen_handler.handle_message(&args),
+                _ => ()
             }
         }
     }
 }
 
-impl MessageHandlerBuilder {
-    pub fn add_handler(mut self, command: Commands, handler: Box<CommandHandler>) -> Self {
-        self.handler.insert(command, handler);
-        self
+fn to_message(s: &'static str) -> MessageKind{
+    MessageKind::Text {
+        data: s.to_string(),
+        entities: vec![]
     }
+}
 
-    pub fn build(self) -> MessageHandler {
-        MessageHandler {
-            handler: self.handler
+macro_rules! parse_message_test {
+    ($($name:ident: $value:expr,)*) => {
+    $(
+        #[test]
+        fn $name() {
+            let (input, expected) = $value;
+            let (expected_command, expected_args) = expected;
+            let expected_args = expected_args.to_string();
+            let input = to_message(input);
+            let (command, args) = parse_message(&input).unwrap();
+
+            assert_eq!(expected_command, command);
+            assert_eq!(expected_args, args);
         }
+    )*
     }
+}
+
+parse_message_test!{
+    einkaufen_args: ("/einkaufen bla bla", (Command::Einkaufen, "bla bla")),
+    einkaufen_no_args: ("/einkaufen", (Command::Einkaufen, "")),
+    config_args: ("/config bla bla", (Command::Config, "bla bla")),
+    config_no_args: ("/config", (Command::Config, "")),
+    none: ("bla bla", (Command::None, "bla bla")),
 }
