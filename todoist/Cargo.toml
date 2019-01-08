@@ -6,9 +6,9 @@ authors = ["Nexuz <nexxuz0@googlemail.com>"]
 [dependencies]
 tokio = "0.1.13"
 futures = "0.1.25"
-tokio-core = "0.1.17"
 serde = "1.0.84"
 serde_json = "1.0.34"
 serde_derive = "1.0.84"
 hyper = "0.12.19"
 hyper-tls = "0.3.1"
+uuid = { version = "0.7", features = ["serde", "v4"] }

@@ -1,6 +1,3 @@
-use telegram_bot::types::Message;
-use telegram_bot::types::MessageKind;
-
 pub mod message_handler;
 pub mod einkaufen_handler;
 
@@ -11,14 +8,8 @@ pub enum Commands {
     None
 }
 
-pub fn handle_message(message: Message) {
-    if let MessageKind::Text{ref data, ..} = message.kind {
-
-    }
-}
-
 impl Commands {
-    fn as_string(&self) -> &str {
+    pub fn as_string(&self) -> &str {
         match self {
             Commands::Config => "/config",
             Commands::Einkaufen => "/einkaufen",
@@ -36,6 +27,6 @@ impl From<&str> for Commands {
         }
     }
 }
-pub trait CommandHandler{
-    fn handle_message(&self, cmd_args: &String);
+pub trait CommandHandler: Sync + Send{
+    fn handle_message(&mut self, cmd_args: &String);
 }

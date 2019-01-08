@@ -20,12 +20,12 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle(&self, message: Message) {
+    pub fn handle(&mut self, message: Message) {
         if let MessageKind::Text{ref data, ..} = message.kind {
             let split: Vec<&str> = data.split_whitespace().collect();
             if let Some(&cmd) = split.get(0).filter(|x| x.starts_with('/')) {
                 let cmd = Commands::from(cmd);
-                if let Some(handler) = self.handler.get(&cmd) {
+                if let Some(handler) = self.handler.get_mut(&cmd) {
                     let cmd_args = split[1..].join(" ");
                     handler.handle_message(&cmd_args);
                 }
