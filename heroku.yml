@@ -3,3 +3,5 @@ build:
     worker: Dockerfile
 release:
   image: worker
+run:
+  worker: /shoppinglist

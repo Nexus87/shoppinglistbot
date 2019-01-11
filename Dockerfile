@@ -25,4 +25,4 @@ RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /v
 
 COPY --from=builder /app/release/* /
 
-CMD /shoppinglist
+# CMD /shoppinglist
