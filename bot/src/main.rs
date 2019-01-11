@@ -18,8 +18,8 @@ fn main() {
     let project_id: i64 = env::var("PROJECT_ID").unwrap().parse().unwrap();
 
     let client_ids: Vec<UserId> = env::var("CLIENT_IDS")
-            .unwrap_or(String::from(""))
-            .split(",")
+            .unwrap_or_else(|_| String::from(""))
+            .split(',')
             .map(|x| x.parse::<Integer>().unwrap())
             .map(From::from)
             .collect();

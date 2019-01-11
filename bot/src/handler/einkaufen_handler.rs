@@ -19,8 +19,8 @@ impl EinkaufenCommandHandler {
 }
 
 impl CommandHandler for EinkaufenCommandHandler {
-    fn handle_message(&mut self, cmd_args: &String) {
-        let items: Vec<String> = cmd_args.split(";")
+    fn handle_message(&mut self, cmd_args: &str) {
+        let items: Vec<String> = cmd_args.split(';')
             .map(String::from)
             .collect();
         let future = self.api.add_tasks(&items, self.project_id)
