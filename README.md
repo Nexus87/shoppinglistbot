@@ -1,4 +1,5 @@
 # shoppinglistbot
+[![Build Status](https://travis-ci.org/Nexus87/shoppinglistbot.svg?branch=master)](https://travis-ci.org/Nexus87/shoppinglistbot)
 
 Telegram Bot for adding tasks to Todoist projects
 
