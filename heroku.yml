@@ -1,7 +1,7 @@
 build:
   docker:
-    worker: Dockerfile
+    web: Dockerfile
 release:
-  image: worker
+  image: web
 run:
-  worker: /shoppinglist
+  web: /shoppinglist
