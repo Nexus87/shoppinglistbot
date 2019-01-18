@@ -6,6 +6,7 @@ extern crate todoist;
 extern crate tokio;
 extern crate serde_json;
 extern crate serde;
+extern crate rocket_contrib;
 
 #[macro_use]
 extern crate rocket;
@@ -18,15 +19,12 @@ use telegram_bot::types::Update;
 use std::env;
 use telegram_bot::*;
 use handler::message_handler::MessageHandler;
+use rocket_contrib::json::Json;
 
-
-#[post("/webhook", data = "<payload>")]
-pub fn receive(payload: String, message_handler: State<MessageHandler>) -> Result<(), ()> {
-    let payload = serde_json::from_str::<Update>(payload.as_str()).unwrap();
-
-
-    if let UpdateKind::Message(message) = payload.kind {
-        message_handler.handle(&message);
+#[post("/webhook", format = "json", data = "<payload>")]
+pub fn receive(payload: Json<Update>, message_handler: State<MessageHandler>) -> Result<(), ()> {
+    if let UpdateKind::Message(message) = &payload.kind {
+        message_handler.handle(message);
     }
 
     Ok(())
