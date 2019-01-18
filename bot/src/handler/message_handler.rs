@@ -3,6 +3,7 @@ use handler::CommandHandler;
 use telegram_bot::types::Message;
 use telegram_bot::types::MessageKind;
 use todoist::shopping_list_api::TodoistApi;
+use telegram_bot::types::UserId;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -36,18 +37,23 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
 }
 
 pub struct MessageHandler {
+    client_ids: Vec<UserId>,
     einkaufen_handler: EinkaufenCommandHandler,
 }
 
 impl MessageHandler {
-    pub fn new(token: String, project_id: i64) -> Self {
+    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>) -> Self {
         let api = TodoistApi::new(token);
         MessageHandler {
+            client_ids,
             einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
         }
     }
 
-    pub fn handle(&mut self, message: &Message) {
+    pub fn handle(&self, message: &Message) {
+        if !self.client_ids.contains(&message.from.id) {
+            return;
+        }
         if let Some((command, args)) = parse_message(&message.kind) {
             if let Command::Einkaufen = command {
                 self.einkaufen_handler.handle_message(&args)
