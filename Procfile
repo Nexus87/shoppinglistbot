@@ -1,1 +1,1 @@
-web: ROCKET_PORT=443 ROCKET_ENV=prod ./target/release/shoppinglist
+web: ROCKET_PORT=$PORT ROCKET_ENV=prod ./target/release/shoppinglist
