@@ -11,7 +11,7 @@ extern crate rocket_contrib;
 
 #[macro_use]
 extern crate rocket;
-extern crate rocksdb;
+extern crate sled;
 
 mod handler;
 mod storage;
@@ -23,11 +23,11 @@ use std::env;
 use telegram_bot::*;
 use handler::message_handler::MessageHandler;
 use rocket_contrib::json::Json;
-use storage::rocksdb::RocksdbStorage;
+use storage::sled::SledStorage;
 use storage::Storage;
 
 #[post("/webhook", format = "json", data = "<payload>")]
-pub fn receive(payload: Json<Update>, message_handler: State<MessageHandler>, db: State<RocksdbStorage>) -> Result<(), ()> {
+pub fn receive(payload: Json<Update>, message_handler: State<MessageHandler>, db: State<SledStorage>) -> Result<(), ()> {
     
     if let UpdateKind::Message(message) = &payload.kind {
         let last_update_id = db.get_last_update_id(message.chat.id());
@@ -59,7 +59,7 @@ fn main() {
 
     let api = Api::configure(token).build().unwrap();
     let message_handler = MessageHandler::new(todoist_token, project_id, client_ids);
-    let db = RocksdbStorage::new(&db_path);
+    let db = SledStorage::new(&db_path);
 //    let future = api.stream()
 //        .filter(move |update| {
 //            let id = match &update.kind {
