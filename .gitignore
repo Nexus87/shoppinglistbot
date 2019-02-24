@@ -4,4 +4,4 @@
 /release
 .idea
 /run.sh
-/my.db
+**/my.db
