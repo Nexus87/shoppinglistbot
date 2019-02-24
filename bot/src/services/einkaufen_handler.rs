@@ -26,9 +26,9 @@ impl EinkaufenCommandHandler {
     
 }
 
-fn split_args(cmd_args: &str) -> Vec<String> {
+fn split_args(cmd_args: &str) -> Vec<&str> {
     cmd_args.split(';')
-        .map(|x| String::from(x.trim()))
+        .map(str::trim)
         .filter(|x| !x.is_empty())
         .collect()
 }

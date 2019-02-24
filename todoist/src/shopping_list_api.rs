@@ -21,7 +21,7 @@ use types::{
 };
 use serde::Serialize;
 
-const URL: &'static str = "https://todoist.com/api/v7/sync";
+const URL: &str = "https://todoist.com/api/v7/sync";
 
 type TodoistClient = Client<HttpsConnector<HttpConnector>>;
 
@@ -62,9 +62,9 @@ impl TodoistApi {
 
 pub trait ShoppingListApi {
     fn get_projects(&self) -> Box<Future<Item=GetProjectsResponse, Error=hyper::Error>>;
-    fn add_tasks(&self, texts: &Vec<String>, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send>;
-    fn add_task(&self, text: &String, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
-        let texts = vec![text.clone()];
+    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send>;
+    fn add_task(&self, text: &str, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+        let texts = [text];
         self.add_tasks(&texts, project_id)
     }
 }
@@ -86,7 +86,7 @@ impl ShoppingListApi for TodoistApi {
         Box::new(result)
     }
 
-    fn add_tasks(&self, texts: &Vec<String>, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
         let commands: Vec<Command<Task>> = texts.iter()
             .map(|x| Task::new(x, project_id))
             .map(Command::new_add_task)

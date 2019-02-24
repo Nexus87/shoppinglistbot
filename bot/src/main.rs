@@ -40,7 +40,6 @@ fn main() {
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
 
     rocket::ignite()
-        .manage(api)
         .manage(telegram_message_service)
         .mount("/", get_routes())
         .launch();
