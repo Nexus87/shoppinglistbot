@@ -1,3 +1,4 @@
+use errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
 use telegram_bot::types::Message;
 use telegram_bot::types::MessageKind;
@@ -68,17 +69,18 @@ impl ShoppingBotMessageService {
 }
 
 impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) {
+    fn handle_message(&self, update: &Update) -> Result<(), ShoppingListBotError> {
         if let UpdateKind::Message(message) = &update.kind {
-            let last_update_id = self.db.get_last_update_id(message.chat.id());
+            let last_update_id = self.db.get_last_update_id(message.chat.id())?;
             if let Some(id) = last_update_id {
                 if id >= update.id {
-                    return;
+                    return Ok(());
                 }
             }
-            self.db.set_last_update_id(message.chat.id(), update.id);
+            self.db.set_last_update_id(message.chat.id(), update.id)?;
             self.handle(message);
         }
+        Ok(())
     }
 }
 

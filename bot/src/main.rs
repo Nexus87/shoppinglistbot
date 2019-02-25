@@ -8,6 +8,8 @@ extern crate tokio;
 extern crate serde_json;
 extern crate serde;
 extern crate rocket_contrib;
+#[macro_use]
+extern crate failure;
 
 #[macro_use]
 extern crate rocket;
@@ -16,6 +18,7 @@ extern crate sled;
 mod services;
 mod storage;
 mod routes;
+mod errors;
 
 use std::env;
 use telegram_bot::*;
