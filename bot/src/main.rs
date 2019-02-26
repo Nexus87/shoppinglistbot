@@ -79,7 +79,7 @@ fn init_logging() {
         "OFF" => LevelFilter::Off,
         _ => LevelFilter::Info
     };
-    if let Err(e) = TermLogger::init(log_level, Config::default()) {
+    if let Err(e) = SimpleLogger::init(log_level, Config::default()) {
         println!("{:?}", e);
     }
 
