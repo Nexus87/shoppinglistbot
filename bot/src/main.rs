@@ -79,7 +79,9 @@ fn init_logging() {
         "OFF" => LevelFilter::Off,
         _ => LevelFilter::Info
     };
-    TermLogger::init(log_level, Config::default()).unwrap();
+    if let Err(e) = TermLogger::init(log_level, Config::default()) {
+        println!("{:?}", e);
+    }
 
 }
 fn main() {
