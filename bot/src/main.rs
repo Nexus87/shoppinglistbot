@@ -2,12 +2,15 @@
 
 extern crate byteorder;
 extern crate futures;
+extern crate rocket_contrib;
+extern crate serde;
+extern crate serde_json;
 extern crate telegram_bot;
 extern crate todoist;
 extern crate tokio;
-extern crate serde_json;
-extern crate serde;
-extern crate rocket_contrib;
+#[macro_use]
+extern crate log;
+extern crate simplelog;
 #[macro_use]
 extern crate failure;
 
@@ -15,29 +18,45 @@ extern crate failure;
 extern crate rocket;
 extern crate sled;
 
+mod errors;
+mod routes;
 mod services;
 mod storage;
-mod routes;
-mod errors;
 
-use std::env;
-use telegram_bot::*;
+use errors::ShoppingListBotError;
 use routes::get_routes;
-use storage::get_storage;
 use services::get_telegram_service;
+use simplelog::*;
+use std::env;
+use storage::get_storage;
+use telegram_bot::{Integer, UserId};
 
+fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
+    env::var(key).map_err(|x| ShoppingListBotError::InitError {
+        missings_var: format!("{}: {}", key, x),
+    })
+}
+fn read_env_vars() -> Result<(String, i64, Vec<UserId>), ShoppingListBotError> {
+    let todoist_token = env_var("TODOIST_TOKEN")?;
+    let project_id: i64 = env_var("PROJECT_ID")?
+        .parse()
+        .map_err(|x| ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}",x)))?;
 
-fn main() {
-    let todoist_token = env::var("TODOIST_TOKEN").unwrap();
-    let project_id: i64 = env::var("PROJECT_ID").unwrap().parse().unwrap();
-    let db_path = "./my.db";
-
-    let client_ids: Vec<UserId> = env::var("CLIENT_IDS")
+    let client_ids: Result<Vec<UserId>, _> = env_var("CLIENT_IDS")
         .unwrap_or_else(|_| String::from(""))
         .split(',')
-        .map(|x| x.parse::<Integer>().unwrap())
-        .map(From::from)
+        .map(|x| x.parse::<Integer>())
+        .map(|x: Result<Integer, _>| x.map(From::from))
         .collect();
+    
+    let client_ids = client_ids
+        .map_err(|x| ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}",x)))?;
+    Ok((todoist_token, project_id, client_ids))
+}
+
+fn run() -> Result<(), ShoppingListBotError> {
+    let db_path = "./my.db";
+    let (todoist_token, project_id, client_ids) = read_env_vars()?;
 
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
@@ -46,4 +65,28 @@ fn main() {
         .manage(telegram_message_service)
         .mount("/", get_routes())
         .launch();
+    Ok(())
+}
+
+fn init_logging() {
+    let level_string = &env::var("LOG_LEVEL").unwrap_or_default()[..];
+    let log_level = match level_string { 
+        "TRACE" => LevelFilter::Trace,
+        "DEBUG" => LevelFilter::Debug,
+        "INFO" => LevelFilter::Info,
+        "WARN" => LevelFilter::Warn,
+        "ERROR" => LevelFilter::Error,
+        "OFF" => LevelFilter::Off,
+        _ => LevelFilter::Info
+    };
+    TermLogger::init(log_level, Config::default()).unwrap();
+
+}
+fn main() {
+    init_logging();
+    
+    if let Err(e) = run() {
+        error!("{}", e);
+        panic!()
+    }
 }

@@ -7,7 +7,9 @@ use services::TelegramMessageService;
 
 #[post("/webhook", format = "json", data = "<payload>")]
 fn telegram_webhook(payload: Json<Update>, telegram_service: State<Box<dyn TelegramMessageService>>) -> Result<(), ()> {
-    telegram_service.handle_message(&payload);
+    if let Err(e) = telegram_service.handle_message(&payload){
+        error!("{}", e);
+    }
     Ok(())
 }
 
