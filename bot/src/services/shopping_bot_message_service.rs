@@ -58,6 +58,7 @@ impl ShoppingBotMessageService {
 
     pub fn handle(&self, message: &Message) {
         if !self.client_ids.contains(&message.from.id) {
+            warn!("Unknown client: {:?}", message.from);
             return;
         }
         if let Some((command, args)) = parse_message(&message.kind) {
@@ -73,6 +74,7 @@ impl TelegramMessageService for ShoppingBotMessageService {
         if let UpdateKind::Message(message) = &update.kind {
             let last_update_id = self.db.get_last_update_id(message.chat.id())?;
             if let Some(id) = last_update_id {
+                info!("Last id: {}, current id: {}", id, update.id);
                 if id >= update.id {
                     return Ok(());
                 }

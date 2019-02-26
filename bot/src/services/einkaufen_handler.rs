@@ -17,7 +17,9 @@ impl EinkaufenCommandHandler {
     }
     
     pub fn handle_message(&self, cmd_args: &str) {
+        info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
+        info!("With args {:?}", items);
         let future = self.api.add_tasks(&items, self.project_id)
             .map(|_| ())
             .map_err(|_| ());

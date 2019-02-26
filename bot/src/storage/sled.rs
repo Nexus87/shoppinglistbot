@@ -36,16 +36,17 @@ impl Storage for SledStorage {
                 .map_err(|_| ShoppingListBotError::StorageError {
                     error_message: String::from("cannot parse value"),
                 })?;
-            println!("Read update_id {}", update_id);
+            trace!("Read update_id {}", update_id);
             return Ok(Some(update_id))
         }
+        trace!("Key not found");
         Ok(None)
     }
 
     fn set_last_update_id(&self, chat: ChatId, update_id: i64) -> Result<(), ShoppingListBotError> {
         let chat = SledStorage::chat_id_to_u8(chat);
         let update_id: String = update_id.to_string();
-        println!("Write update_id {}", update_id);
+        trace!("Write update_id {}", update_id);
 
         self.db.set(&chat, update_id.as_bytes().to_vec())?;
         Ok(())
