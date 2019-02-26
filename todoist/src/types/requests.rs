@@ -18,7 +18,7 @@ pub struct GetProjectsRequest {
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Task<'a> {
-    content: &'a String,
+    content: &'a str,
     project_id: Integer,
     date_string: Option<String>,
     date_lang: Option<String>,
@@ -36,7 +36,7 @@ pub struct Task<'a> {
 }
 
 impl<'a> Task<'a> {
-    pub fn new(content: &'a String, project_id: Integer) -> Self {
+    pub fn new(content: &'a str, project_id: Integer) -> Self {
         Task {
             content,
             project_id,

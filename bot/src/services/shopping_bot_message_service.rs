@@ -1,9 +1,13 @@
+use errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
-use handler::CommandHandler;
 use telegram_bot::types::Message;
 use telegram_bot::types::MessageKind;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::types::UserId;
+use services::TelegramMessageService;
+use telegram_bot::types::Update;
+use storage::Storage;
+use telegram_bot::UpdateKind;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -36,22 +40,25 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     None
 }
 
-pub struct MessageHandler {
+pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
     einkaufen_handler: EinkaufenCommandHandler,
+    db: Box<dyn Storage>
 }
 
-impl MessageHandler {
-    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>) -> Self {
+impl ShoppingBotMessageService {
+    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Self {
         let api = TodoistApi::new(token);
-        MessageHandler {
+        ShoppingBotMessageService {
             client_ids,
             einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
+            db
         }
     }
 
     pub fn handle(&self, message: &Message) {
         if !self.client_ids.contains(&message.from.id) {
+            warn!("Unknown client: {:?}", message.from);
             return;
         }
         if let Some((command, args)) = parse_message(&message.kind) {
@@ -61,6 +68,24 @@ impl MessageHandler {
         }
     }
 }
+
+impl TelegramMessageService for ShoppingBotMessageService {
+    fn handle_message(&self, update: &Update) -> Result<(), ShoppingListBotError> {
+        if let UpdateKind::Message(message) = &update.kind {
+            let last_update_id = self.db.get_last_update_id(message.chat.id())?;
+            if let Some(id) = last_update_id {
+                info!("Last id: {}, current id: {}", id, update.id);
+                if id >= update.id {
+                    return Ok(());
+                }
+            }
+            self.db.set_last_update_id(message.chat.id(), update.id)?;
+            self.handle(message);
+        }
+        Ok(())
+    }
+}
+
 
 macro_rules! parse_message_test {
     ($($name:ident: $value:expr,)*) => {

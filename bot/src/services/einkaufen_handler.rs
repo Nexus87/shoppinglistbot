@@ -1,5 +1,4 @@
 use todoist::shopping_list_api::TodoistApi;
-use handler::CommandHandler;
 use todoist::shopping_list_api::ShoppingListApi;
 use tokio::prelude::future::Future;
 
@@ -16,24 +15,26 @@ impl EinkaufenCommandHandler {
             project_id,
         }
     }
-}
-
-fn split_args(cmd_args: &str) -> Vec<String> {
-    cmd_args.split(';')
-        .map(|x| String::from(x.trim()))
-        .filter(|x| !x.is_empty())
-        .collect()
-}
-
-impl CommandHandler for EinkaufenCommandHandler {
-    fn handle_message(&self, cmd_args: &str) {
+    
+    pub fn handle_message(&self, cmd_args: &str) {
+        info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
+        info!("With args {:?}", items);
         let future = self.api.add_tasks(&items, self.project_id)
             .map(|_| ())
             .map_err(|_| ());
         tokio::run(future);
     }
+    
 }
+
+fn split_args(cmd_args: &str) -> Vec<&str> {
+    cmd_args.split(';')
+        .map(str::trim)
+        .filter(|x| !x.is_empty())
+        .collect()
+}
+
 
 #[test]
 fn split_args_test() {
