@@ -69,17 +69,18 @@ impl ShoppingBotMessageService {
             return None;
         }
         if let Some((command, args)) = parse_message(&message.kind) {
+            info!("Command {:?}", command);
             match command { 
-                Command::Einkaufen => {
-                    self.einkaufen_handler.handle_message(&args);
-                    return None;
-                },
+                Command::Einkaufen => return self.einkaufen_handler.handle_message(&args),
                 Command::TestStore => {
-                    self.store_handler.handle_message(&args);
+                    self.store_handler.handle_message_store(&args);
                     return None;
                 },
-                Command::TestGet => return self.store_handler.handle_message(&args),
-                _ => return None
+                Command::TestGet => return self.store_handler.handle_message_load(),
+                _ => {
+                    info!("Unknown command {:?}", command);
+                    return None
+                }
             }
         }
         None
@@ -133,5 +134,7 @@ parse_message_test! {
     einkaufen_no_args: ("/einkaufen", (Command::Einkaufen, "")),
     config_args: ("/config bla bla", (Command::Config, "bla bla")),
     config_no_args: ("/config", (Command::Config, "")),
+    load_no_args: ("/load", (Command::TestGet, "")),
+    store_args: ("/store bla bla", (Command::TestStore, "bla bla")),
     none: ("bla bla", (Command::None, "bla bla")),
 }

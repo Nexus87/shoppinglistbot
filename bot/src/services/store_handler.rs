@@ -13,20 +13,14 @@ impl StoreCommandHandler{
         }
     }
 
-    pub fn handle_message(&self, cmd_args: &str) -> Option<String> {
-        match cmd_args { 
-            "/store" => {
-                info!("Handle command /store");
-                self.storage.set_temp("myKey", cmd_args.to_string()).unwrap();
-                None
-                
-            }
-            "/load" => {
-                info!("Handle command /load");
-                self.storage.get_temp("myKey").unwrap()
-            }
-            _ => None
-        }
+    pub fn handle_message_store(&self, cmd_args: &str) -> Option<String> {
+        info!("Handle command /store");
+        self.storage.set_temp("myKey", cmd_args.to_string()).unwrap();
+        None
+    }
+    pub fn handle_message_load(&self) -> Option<String> {
+        info!("Handle command /load");
+        self.storage.get_temp("myKey").unwrap()
     }
 
 }
