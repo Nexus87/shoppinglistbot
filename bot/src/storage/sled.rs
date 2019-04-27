@@ -2,6 +2,8 @@ use errors::ShoppingListBotError;
 use sled::Db;
 use storage::Storage;
 use telegram_bot::types::ChatId;
+use bincode::{serialize, deserialize};
+use serde::de::DeserializeOwned;
 
 pub struct SledStorage {
     db: Db,
@@ -18,6 +20,11 @@ impl SledStorage {
 
         let raw_bytes: [u8; 8] = unsafe { std::mem::transmute(i) };
         raw_bytes
+    }
+    
+    fn deserialize<'a, T>(value: &Vec<u8>) -> Result<T, ShoppingListBotError> where T: DeserializeOwned {
+        let ret: T = deserialize(value)?;
+        Ok(ret)
     }
 }
 
@@ -49,6 +56,23 @@ impl Storage for SledStorage {
         trace!("Write update_id {}", update_id);
 
         self.db.set(&chat, update_id.as_bytes().to_vec())?;
+        Ok(())
+    }
+
+    fn get_temp(&self, key: &str) -> Result<Option<String>, ShoppingListBotError> {
+        let key = serialize(key)?;
+        let value = self.db.get(key)?;
+        let ret = match value {
+            None => None,
+            Some(v) => Some(SledStorage::deserialize(&v.to_vec())?),
+        };
+        Ok(ret)
+    }
+
+    fn set_temp(&self, key: &str, value: String) -> Result<(), ShoppingListBotError> {
+        let key = serialize(key)?;
+        let value = serialize(&value)?;
+        self.db.set(key, value)?;
         Ok(())
     }
 }

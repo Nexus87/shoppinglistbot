@@ -1,15 +1,19 @@
 use rocket_contrib::json::Json;
-use telegram_bot::Update;
+use telegram_bot::{Update};
 use rocket::State;
 use rocket::Route;
-use services::TelegramMessageService;
+use services::{TelegramMessageService, MessageSendService};
 
 
 #[post("/webhook", format = "json", data = "<payload>")]
-fn telegram_webhook(payload: Json<Update>, telegram_service: State<Box<dyn TelegramMessageService>>) -> Result<(), ()> {
-    if let Err(e) = telegram_service.handle_message(&payload){
-        error!("{}", e);
+fn telegram_webhook(payload: Json<Update>, telegram_service: State<Box<dyn TelegramMessageService>>, 
+                    message_send_service: State<Box<dyn MessageSendService>>) -> Result<(), ()> {
+    match telegram_service.handle_message(&payload) {
+        Err(e) => error!("{}", e),
+        Ok(Some((c, m))) => message_send_service.send_message(c, &m),
+        _ => ()
     }
+
     Ok(())
 }
 

@@ -17,6 +17,8 @@ extern crate failure;
 #[macro_use]
 extern crate rocket;
 extern crate sled;
+extern crate bincode;
+extern crate core;
 
 mod errors;
 mod routes;
@@ -25,7 +27,7 @@ mod storage;
 
 use errors::ShoppingListBotError;
 use routes::get_routes;
-use services::get_telegram_service;
+use services::{get_telegram_service, get_message_send_service};
 use simplelog::*;
 use std::env;
 use storage::get_storage;
@@ -36,7 +38,7 @@ fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
         missings_var: format!("{}: {}", key, x),
     })
 }
-fn read_env_vars() -> Result<(String, i64, Vec<UserId>), ShoppingListBotError> {
+fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String), ShoppingListBotError> {
     let todoist_token = env_var("TODOIST_TOKEN")?;
     let project_id: i64 = env_var("PROJECT_ID")?
         .parse()
@@ -51,18 +53,21 @@ fn read_env_vars() -> Result<(String, i64, Vec<UserId>), ShoppingListBotError> {
     
     let client_ids = client_ids
         .map_err(|x| ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}",x)))?;
-    Ok((todoist_token, project_id, client_ids))
+    
+    let telegram_token = env_var("TELEGRAM_BOT_TOKEN")?;
+    Ok((todoist_token, project_id, client_ids, telegram_token))
 }
 
 fn run() -> Result<(), ShoppingListBotError> {
     let db_path = "./my.db";
-    let (todoist_token, project_id, client_ids) = read_env_vars()?;
+    let (todoist_token, project_id, client_ids, bot_token) = read_env_vars()?;
 
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
-
+    let message_service = get_message_send_service(&bot_token);
     rocket::ignite()
         .manage(telegram_message_service)
+        .manage(message_service)
         .mount("/", get_routes())
         .launch();
     Ok(())
