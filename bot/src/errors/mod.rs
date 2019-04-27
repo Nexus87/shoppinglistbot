@@ -1,4 +1,5 @@
 use sled;
+use std::error::Error;
 
 #[derive(Debug, Fail)]
 pub enum ShoppingListBotError {
@@ -8,6 +9,8 @@ pub enum ShoppingListBotError {
     InitError { missings_var: String },
     #[fail(display = "Parsing of {} failed: {}", name, err)]
     ParsingError { name: String, err: String },
+    #[fail(display = "Serialization failed: {}", err)]
+    SerializationError {err: String}
 }
 
 impl ShoppingListBotError {
@@ -19,10 +22,17 @@ impl ShoppingListBotError {
     }
 }
 
-impl From<sled::Error<()>> for ShoppingListBotError {
-    fn from(err: sled::Error<()>) -> ShoppingListBotError {
+impl From<sled::Error> for ShoppingListBotError {
+    fn from(err: sled::Error) -> ShoppingListBotError {
         ShoppingListBotError::StorageError {
             error_message: format!("{}", err),
+        }
+    }
+}
+impl From<bincode::Error> for ShoppingListBotError {
+    fn from(err: Box<bincode::ErrorKind>) -> Self {
+        ShoppingListBotError::SerializationError {
+            err: err.description().to_string()
         }
     }
 }
