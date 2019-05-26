@@ -19,14 +19,18 @@ extern crate rocket;
 extern crate sled;
 extern crate bincode;
 extern crate core;
+extern crate actix_web;
+extern crate actix;
 
 mod errors;
 mod routes;
 mod services;
 mod storage;
+mod messages;
 
 use errors::ShoppingListBotError;
 use routes::get_routes;
+use actix_web::{App, HttpRequest, HttpResponse, dev::Handler};
 use services::{get_telegram_service, get_message_send_service};
 use simplelog::*;
 use std::env;
@@ -37,6 +41,13 @@ fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
     env::var(key).map_err(|x| ShoppingListBotError::InitError {
         missings_var: format!("{}: {}", key, x),
     })
+}
+struct MyHandler();
+impl<S> Handler<S> for MyHandler {
+    type Result = HttpResponse;
+    fn handle(&self, req: &HttpRequest<S>) -> Self::Result {
+        HttpResponse::Ok().into()
+    }
 }
 fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String), ShoppingListBotError> {
     let todoist_token = env_var("TODOIST_TOKEN")?;
@@ -65,6 +76,8 @@ fn run() -> Result<(), ShoppingListBotError> {
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
     let message_service = get_message_send_service(&bot_token);
+    actix_web::server::HttpServer::new(|| App::new()
+    .resource("/", move |r| r.h(MyHandler())));
     rocket::ignite()
         .manage(telegram_message_service)
         .manage(message_service)

@@ -1,12 +1,10 @@
 use errors::ShoppingListBotError;
-use super::einkaufen_handler::EinkaufenCommandHandler;
+use super::einkaufen_actor::EinkaufenActor;
+use actix::prelude::*;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::types::UserId;
-use services::TelegramMessageService;
 use telegram_bot::types::Update;
-use storage::Storage;
 use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
-use services::store_handler::StoreCommandHandler;
 use std::sync::Arc;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -18,6 +16,9 @@ pub enum Command {
     None,
 }
 
+pub struct State {
+    db: Addr<SledActor>
+}
 impl From<&str> for Command {
     fn from(s: &str) -> Self {
         match s {
@@ -46,7 +47,7 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
 
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
-    einkaufen_handler: EinkaufenCommandHandler,
+    einkaufen_handler: EinkaufenActor,
     store_handler: StoreCommandHandler,
     db: Arc<dyn Storage>
 }
@@ -57,7 +58,7 @@ impl ShoppingBotMessageService {
         let db: Arc<dyn Storage> = Arc::from(db);
         ShoppingBotMessageService {
             client_ids,
-            einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
+            einkaufen_handler: EinkaufenActor::new(api, project_id),
             db: db.clone(),
             store_handler: StoreCommandHandler::new(db),
         }

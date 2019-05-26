@@ -1,30 +1,46 @@
+use errors::ShoppingListBotError;
 use telegram_bot::{
     Api,
     MessageChat,
     prelude::*
 };
+use actix::prelude::*;
 use tokio::prelude::*;
 
-pub struct TelegramMessageSendService {
+pub struct SendText {
+    text: String,
+    chat: MessageChat
+}
+
+impl Message for SendText {
+    type Result = Future<Result<(), ShoppingListBotError>>;
+}
+
+pub struct TelegramActor {
     api: Api
 }
 
-impl TelegramMessageSendService {
+impl Actor for TelegramActor {
+    type Context = Context<Self>;
+}
+
+impl TelegramActor {
     pub fn new(token: &String) -> Self {
         let api = Api::configure(token).build().unwrap();
-        TelegramMessageSendService {
+        TelegramActor {
             api
         }
     }
 }
-impl super::MessageSendService for TelegramMessageSendService {
-    fn send_message(&self, chat: MessageChat, message: &String) {
+
+impl Handler<SendText> for TelegramActor {
+    type Result = Future<Result<(), ShoppingListBotError>>;
+    fn handle(&mut self, msg: SendText, _: &mut Context<Self>) -> Self::Result {
+        let chat = msg.chat;
+        let message = msg.text;
         info!("Send message {} to {:?}", message, chat.id());
         let f = self.api.send(chat.text(message));
-        let mut runtime = tokio::runtime::Runtime::new().expect("failed to start new Runtime");
-        runtime
-            .block_on(f)
-            .expect("shutdown cannot error");
         info!("Done sending message {} to {:?}", message, chat.id());
+        f
     }
 }

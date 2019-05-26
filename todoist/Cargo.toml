@@ -12,3 +12,4 @@ serde_derive = "1.0.84"
 hyper = "0.12.19"
 hyper-tls = "0.3.1"
 uuid = { version = "0.7", features = ["serde", "v4"] }
+actix = "0.8.2"
