@@ -1,22 +1,19 @@
-use rocket_contrib::json::Json;
-use telegram_bot::{Update};
-use rocket::State;
-use rocket::Route;
-use services::{TelegramMessageService, MessageSendService};
+use telegram_bot::Update;
+use actix_web::{web, HttpResponse};
+use futures::Future;
+use actix::{Addr, MailboxError};
+use services::telegram_message_send_service::TelegramActor;
+use services::shopping_bot_message_service::{ShoppingBotMessageService, HandleCommand};
 
-
-#[post("/webhook", format = "json", data = "<payload>")]
-fn telegram_webhook(payload: Json<Update>, telegram_service: State<Box<dyn TelegramMessageService>>, 
-                    message_send_service: State<Box<dyn MessageSendService>>) -> Result<(), ()> {
-    match telegram_service.handle_message(&payload) {
-        Err(e) => error!("{}", e),
-        Ok(Some((c, m))) => message_send_service.send_message(c, &m),
-        _ => ()
-    }
-
-    Ok(())
+pub fn telegram_webhook(
+    payload: web::Form<Update>,
+    telegram_service: web::Data<Addr<ShoppingBotMessageService>>,
+    _message_send_service: web::Data<Addr<TelegramActor>>,
+) -> impl Future<Item=HttpResponse, Error=MailboxError> {
+    telegram_service.send(HandleCommand{update: payload.clone()})
+        .and_then(|_| {
+            Ok(HttpResponse::Ok().finish())
+        })
+        .map_err(|_| MailboxError::Closed)
 }
 
-pub fn get_routes() -> Vec<Route> {
-    routes![telegram_webhook]
-}

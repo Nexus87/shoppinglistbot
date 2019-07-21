@@ -1,19 +1,14 @@
 use errors::ShoppingListBotError;
-use telegram_bot::{
-    Api,
-    MessageChat,
-    prelude::*
-};
+use telegram_bot::{Api, MessageChat, prelude::*};
 use actix::prelude::*;
-use tokio::prelude::*;
 
 pub struct SendText {
     text: String,
-    chat: MessageChat
+    chat: MessageChat,
 }
 
 impl Message for SendText {
-    type Result = Future<Result<(), ShoppingListBotError>>;
+    type Result = Result<(), ShoppingListBotError>;
 }
 
 pub struct TelegramActor {
@@ -34,13 +29,17 @@ impl TelegramActor {
 }
 
 impl Handler<SendText> for TelegramActor {
-    type Result = Future<Result<(), ShoppingListBotError>>;
-    fn handle(&mut self, msg: SendText, _: &mut Context<Self>) -> Self::Result {
+    type Result = Box<Future<Item = (), Error = ShoppingListBotError>>;
+    fn handle(&mut self, msg: SendText, _: &mut Context<Self>) -> Box<Future<Item = (), Error = ShoppingListBotError>> {
         let chat = msg.chat;
         let message = msg.text;
         info!("Send message {} to {:?}", message, chat.id());
-        let f = self.api.send(chat.text(message));
-        info!("Done sending message {} to {:?}", message, chat.id());
-        f
+        let f = self.api.send(chat.text(&message))
+            .map(move |_| {
+                info!("Done sending message {} to {:?}", &message, chat.id());
+                ()
+            })
+            .map_err(|e|e.into());
+        Box::new(f)
     }
 }

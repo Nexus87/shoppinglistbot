@@ -1,31 +1,30 @@
-use errors::ShoppingListBotError;
-use storage::SledStorage;
-use todoist::TodoistApi;
+use todoist::{TodoistApi, ShoppingListApi};
 use actix::prelude::*;
-
-pub struct StoreCommandHandler {
-}
-
-
-impl StoreCommandHandler{
+use errors::ShoppingListBotError;
+//
+//pub struct StoreCommandHandler {
+//}
 
 
-    pub fn handle_message_store(&self, cmd_args: &str) -> Option<String> {
-        info!("Handle command /store");
-        self.storage.set_temp("myKey", cmd_args.to_string()).unwrap();
-        None
-    }
-    pub fn handle_message_load(&self) -> Option<String> {
-
-    }
-}
+//impl StoreCommandHandler{
+//
+//
+//    pub fn handle_message_store(&self, cmd_args: &str) -> Option<String> {
+//        info!("Handle command /store");
+//        self.storage.set_temp("myKey", cmd_args.to_string()).unwrap();
+//        None
+//    }
+//    pub fn handle_message_load(&self) -> Option<String> {
+//
+//    }
+//}
 
 pub struct Einkaufen {
     args: String
 }
 
 impl Message for Einkaufen {
-    type Result = ();
+    type Result = Result<(), ShoppingListBotError>;
 }
 
 // pub struct Load {}
@@ -47,17 +46,18 @@ pub struct CommandActor {
 }
 
 impl Actor for CommandActor {
-    type Context = SyncContext<Self>;
+    type Context = Context<Self>;
 }
 
 impl Handler<Einkaufen> for CommandActor {
-    type Result = ();
+    type Result = Box<Future<Item=(), Error=ShoppingListBotError>>;
 
-    fn handle(&mut self, msg: Einkaufen, ctx: &mut SyncContext<Self>) -> Self::Result {
+    fn handle(&mut self, msg: Einkaufen, _: &mut Context<Self>) -> Self::Result {
         info!("Handle command /einkaufen");
         let items = split_args(msg.args.as_str());
         info!("With args {:?}", items);
-        let future = self.api.add_tasks(&items, self.project_id);
+        let future = self.api.add_tasks(&items, self.project_id)
+            .map_err(|e| e.into());
         // let mut runtime = Runtime::new().expect("failed to start new Runtime");
         // runtime
         //     .block_on(future)
@@ -65,6 +65,7 @@ impl Handler<Einkaufen> for CommandActor {
 
         if items.len() > 0
         { Some(format!("Added {} items", items.len())); } else { Some("Nothing to add".to_string()); }
+        Box::new(future)
     }
 }
 

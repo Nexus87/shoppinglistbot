@@ -1,19 +1,16 @@
 use todoist::shopping_list_api::TodoistApi;
 use todoist::shopping_list_api::ShoppingListApi;
 use tokio::runtime::Runtime;
-use actix::{
-    Actor,
-    SyncContext,
-    Handler,
-};
+use actix::{Actor, Handler, Context};
 use actix::Message;
+use errors::ShoppingListBotError;
 
 pub struct Einkaufen {
-    args: String
+    pub args: String
 }
 
 impl Message for Einkaufen {
-    type Result = ();
+    type Result = Result<(), ShoppingListBotError>;
 }
 
 pub struct EinkaufenActor {
@@ -22,13 +19,13 @@ pub struct EinkaufenActor {
 }
 
 impl Actor for EinkaufenActor {
-    type Context = SyncContext<Self>;
+    type Context = Context<Self>;
 }
 
 impl Handler<Einkaufen> for EinkaufenActor {
-    type Result = ();
+    type Result = Result<(), ShoppingListBotError>;
 
-    fn handle(&mut self, msg: Einkaufen, ctx: &mut SyncContext<Self>) -> Self::Result {
+    fn handle(&mut self, msg: Einkaufen, _: &mut Context<Self>) -> Self::Result {
         info!("Handle command /einkaufen");
         let items = split_args(msg.args.as_str());
         info!("With args {:?}", items);
@@ -40,6 +37,7 @@ impl Handler<Einkaufen> for EinkaufenActor {
 
         if items.len() > 0
         { Some(format!("Added {} items", items.len())); } else { Some("Nothing to add".to_string()); }
+        Ok(())
     }
 }
 

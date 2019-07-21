@@ -2,10 +2,16 @@ use errors::ShoppingListBotError;
 use super::einkaufen_actor::EinkaufenActor;
 use actix::prelude::*;
 use todoist::shopping_list_api::TodoistApi;
-use telegram_bot::types::UserId;
-use telegram_bot::types::Update;
-use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
-use std::sync::Arc;
+use telegram_bot::{
+    types::Update,
+    types::UserId,
+    Message as TelegramMessage,
+    UpdateKind,
+    MessageKind,
+};
+use storage::{SledActor, CheckAndUpdate};
+use services::einkaufen_actor::Einkaufen;
+use futures::future::Either;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -16,9 +22,6 @@ pub enum Command {
     None,
 }
 
-pub struct State {
-    db: Addr<SledActor>
-}
 impl From<&str> for Command {
     fn from(s: &str) -> Self {
         match s {
@@ -45,63 +48,89 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     None
 }
 
+pub struct HandleCommand {
+    pub update: Update
+}
+
+impl Message for HandleCommand {
+    type Result = Result<(), ShoppingListBotError>;
+}
+#[derive(Clone)]
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
-    einkaufen_handler: EinkaufenActor,
-    store_handler: StoreCommandHandler,
-    db: Arc<dyn Storage>
+    einkaufen_handler: Addr<EinkaufenActor>,
+    db: Addr<SledActor>,
+}
+
+fn done() -> impl Future<Item=(), Error=ShoppingListBotError> {
+    futures::done(Ok(()))
+}
+fn empty_response() -> Box<Future<Item=(), Error=ShoppingListBotError>> {
+    Box::new(futures::done(Ok(())))
 }
 
 impl ShoppingBotMessageService {
-    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Self {
+    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Addr<SledActor>) -> Self {
         let api = TodoistApi::new(token);
-        let db: Arc<dyn Storage> = Arc::from(db);
         ShoppingBotMessageService {
             client_ids,
-            einkaufen_handler: EinkaufenActor::new(api, project_id),
-            db: db.clone(),
-            store_handler: StoreCommandHandler::new(db),
+            einkaufen_handler: EinkaufenActor::new(api, project_id).start(),
+            db,
         }
     }
 
-    pub fn handle(&self, message: &Message) -> Option<String> {
+    fn handle_message(&mut self, message: &TelegramMessage) -> impl Future<Item=(), Error=ShoppingListBotError> {
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);
-            return None;
+            return Either::B(done());
         }
         if let Some((command, args)) = parse_message(&message.kind) {
             info!("Command {:?}", command);
-            match command { 
-                Command::Einkaufen => return self.einkaufen_handler.handle_message(&args),
-                Command::TestStore => {
-                    self.store_handler.handle_message_store(&args);
-                    return None;
-                },
-                Command::TestGet => return self.store_handler.handle_message_load(),
+            match command {
+                Command::Einkaufen => {
+                    let result = self.einkaufen_handler.send(Einkaufen { args })
+                        .map(|_| ())
+                        .map_err(|e| e.into());
+                    return Either::A(result);
+                }
+//                Command::TestStore => {
+//                    self.store_handler.handle_message_store(&args);
+//                    return None;
+//                }
+//                Command::TestGet => return self.store_handler.handle_message_load(),
                 _ => {
                     info!("Unknown command {:?}", command);
-                    return None
+                    return Either::B(done());
                 }
             }
         }
-        None
+        Either::B(done())
     }
 }
 
-impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError> {
-        if let UpdateKind::Message(message) = &update.kind {
-            let last_update_id = self.db.get_last_update_id(message.chat.id())?;
-            if let Some(id) = last_update_id {
-                info!("Last id: {}, current id: {}", id, update.id);
-                if id >= update.id {
-                    return Ok(None);
-                }
-            }
-            self.db.set_last_update_id(message.chat.id(), update.id)?;
-            return Ok(self.handle(message).map(|m| (message.chat.clone(), m)));
+impl Actor for ShoppingBotMessageService {
+    type Context = Context<Self>;
+}
+
+impl Handler<HandleCommand> for ShoppingBotMessageService {
+    type Result = Box<Future<Item=(), Error=ShoppingListBotError>>;
+
+    fn handle(&mut self, msg: HandleCommand, _: &mut Context<Self>) -> Self::Result {
+        let update = msg.update;
+        if let UpdateKind::Message(message) = update.kind {
+            let mut self2 = self.clone();
+            let result = self.db
+                .send(CheckAndUpdate { chat_id: message.chat.id(), update_id: update.id })
+                .map_err(|e| e.into())
+                .and_then(move |res| {
+                    if let Ok(true) = res {
+                        return Either::A(self2.handle_message(&message));
+                    }
+                    Either::B(futures::done(Ok(())))
+                });
+            return Box::new(result);
         }
-        Ok(None)
+        empty_response()
     }
 }
 

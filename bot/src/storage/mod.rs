@@ -5,13 +5,13 @@ use telegram_bot::types::ChatId;
 use bincode::{serialize, deserialize};
 use serde::de::DeserializeOwned;
 
-pub struct SledStorage {
+pub struct SledActor {
     db: Db,
 }
 
-impl SledStorage {
+impl SledActor {
     pub fn new(path: &str) -> Self {
-        SledStorage {
+        SledActor {
             db: Db::start_default(path).unwrap(),
         }
     }
@@ -32,20 +32,20 @@ impl SledStorage {
     }
 }
 
-impl Actor for SledStorage {
+impl Actor for SledActor {
     type Context = SyncContext<Self>;
 }
 pub struct CheckAndUpdate {
-    chat_id: ChatId,
-    update_id: i64
+    pub chat_id: ChatId,
+    pub update_id: i64
 }
 
 pub struct Write {
-    chat_id: ChatId,
-    value: String
+    pub chat_id: ChatId,
+    pub value: String
 }
 pub struct Read {
-    chat_id: ChatId
+    pub chat_id: ChatId
 }
 
 
@@ -59,24 +59,24 @@ impl Message for Read {
     type Result = Result<Option<String>, ShoppingListBotError>;
 }
 
-impl Handler<CheckAndUpdate> for SledStorage {
+impl Handler<CheckAndUpdate> for SledActor {
     type Result = Result<bool, ShoppingListBotError>;
     fn handle(&mut self, msg: CheckAndUpdate, _: &mut SyncContext<Self>) -> Result<bool, ShoppingListBotError> {
-        let chat = SledStorage::chat_id_to_u8(msg.chat_id);
-        let update_id = SledStorage::serialize_i64(msg.update_id)?;
+        let chat = SledActor::chat_id_to_u8(msg.chat_id);
+        let update_id = SledActor::serialize_i64(msg.update_id)?;
         let previous = self.db.get(chat)?;
-        if let Some(previous_id) = previous  {
-            let previous_id: i64 = SledStorage::deserialize(&previous_id.to_vec())?;
+        if let Some(previous_id) = &previous  {
+            let previous_id: i64 = SledActor::deserialize(&previous_id.to_vec())?;
             if previous_id >= msg.update_id{
                 return Ok(false)
             }
         }
 
-        self.db.cas(chat, previous, Some(update_id))?;
+        self.db.cas(chat, previous, Some(update_id))?.unwrap();
         Ok(true)
     }
 }
-impl Handler<Write> for SledStorage {
+impl Handler<Write> for SledActor {
     type Result = Result<(), ShoppingListBotError>;
 
     fn handle(&mut self, msg: Write, _: &mut SyncContext<Self>) -> Result<(), ShoppingListBotError> {
@@ -86,7 +86,7 @@ impl Handler<Write> for SledStorage {
         Ok(())
     }
 }
-impl Handler<Read> for SledStorage {
+impl Handler<Read> for SledActor {
     type Result = Result<Option<String>, ShoppingListBotError>;
 
     fn handle(&mut self, msg: Read, _: &mut SyncContext<Self>) -> Result<Option<String>, ShoppingListBotError> {
@@ -94,7 +94,7 @@ impl Handler<Read> for SledStorage {
         let value = self.db.get(key)?;
         let ret = match value {
             None => None,
-            Some(v) => Some(SledStorage::deserialize(&v.to_vec())?),
+            Some(v) => Some(SledActor::deserialize(&v.to_vec())?),
         };
         Ok(ret)
     }
