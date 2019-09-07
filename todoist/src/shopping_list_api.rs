@@ -21,7 +21,7 @@ use types::{
 };
 use serde::Serialize;
 
-const URL: &str = "https://todoist.com/api/v7/sync";
+const URL: &str = "https://todoist.com/api/v8/sync";
 
 type TodoistClient = Client<HttpsConnector<HttpConnector>>;
 
