@@ -1,9 +1,10 @@
 use errors::ShoppingListBotError;
 use telegram_bot::types::ChatId;
 use storage::sled::SledStorage;
+use std::panic::RefUnwindSafe;
 
 pub mod sled;
-pub trait Storage: Send + Sync {
+pub trait Storage: Send + Sync + RefUnwindSafe{
     fn get_last_update_id(&self, chat: ChatId) -> Result<Option<i64>, ShoppingListBotError>;
     fn set_last_update_id(&self, chat: ChatId, update_id: i64) -> Result<(), ShoppingListBotError>;
 

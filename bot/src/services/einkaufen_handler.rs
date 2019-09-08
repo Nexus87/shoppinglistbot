@@ -1,10 +1,10 @@
 use todoist::shopping_list_api::TodoistApi;
 use todoist::shopping_list_api::ShoppingListApi;
-use futures::prelude::*;
-use futures::sync::oneshot::spawn;
 use tokio::runtime::Runtime;
+use std::sync::Arc;
+
 pub struct EinkaufenCommandHandler {
-    api: TodoistApi,
+    api: Arc<TodoistApi>,
     project_id: i64,
 }
 
@@ -12,7 +12,7 @@ pub struct EinkaufenCommandHandler {
 impl EinkaufenCommandHandler {
     pub fn new(api: TodoistApi, project_id: i64) -> Self {
         EinkaufenCommandHandler {
-            api,
+            api: Arc::new(api),
             project_id,
         }
     }

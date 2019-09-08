@@ -1,9 +1,8 @@
 use telegram_bot::{
     Api,
     MessageChat,
-    prelude::*
+    prelude::*,
 };
-use tokio::prelude::*;
 
 pub struct TelegramMessageSendService {
     api: Api
@@ -16,9 +15,8 @@ impl TelegramMessageSendService {
             api
         }
     }
-}
-impl super::MessageSendService for TelegramMessageSendService {
-    fn send_message(&self, chat: MessageChat, message: &String) {
+
+    pub fn send_message(&self, chat: MessageChat, message: &String) {
         info!("Send message {} to {:?}", message, chat.id());
         let f = self.api.send(chat.text(message));
         let mut runtime = tokio::runtime::Runtime::new().expect("failed to start new Runtime");

@@ -2,20 +2,19 @@
 
 extern crate byteorder;
 extern crate futures;
-extern crate rocket_contrib;
 extern crate serde;
 extern crate serde_json;
 extern crate telegram_bot;
 extern crate todoist;
 extern crate tokio;
+extern crate gotham;
+extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate simplelog;
 #[macro_use]
 extern crate failure;
 
-#[macro_use]
-extern crate rocket;
 extern crate sled;
 extern crate bincode;
 extern crate core;
@@ -65,12 +64,14 @@ fn run() -> Result<(), ShoppingListBotError> {
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
     let message_service = get_message_send_service(&bot_token);
-    rocket::ignite()
-        .manage(telegram_message_service)
-        .manage(message_service)
-        .mount("/", get_routes())
-        .launch();
+    gotham::start("0.0.0.0:7878", get_routes(telegram_message_service,  message_service));
     Ok(())
+//    rocket::ignite()
+//        .manage(telegram_message_service)
+//        .manage(message_service)
+//        .mount("/", get_routes())
+//        .launch();
+//    Ok(())
 }
 
 fn init_logging() {

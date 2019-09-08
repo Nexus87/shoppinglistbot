@@ -2,7 +2,7 @@ use errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::types::UserId;
-use services::TelegramMessageService;
+use services::TelegramMessageSendService;
 use telegram_bot::types::Update;
 use storage::Storage;
 use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
@@ -85,10 +85,7 @@ impl ShoppingBotMessageService {
         }
         None
     }
-}
-
-impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError> {
+    pub fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError> {
         if let UpdateKind::Message(message) = &update.kind {
             let last_update_id = self.db.get_last_update_id(message.chat.id())?;
             if let Some(id) = last_update_id {
@@ -103,7 +100,6 @@ impl TelegramMessageService for ShoppingBotMessageService {
         Ok(None)
     }
 }
-
 
 macro_rules! parse_message_test {
     ($($name:ident: $value:expr,)*) => {
