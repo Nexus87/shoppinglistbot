@@ -20,6 +20,7 @@ use types::{
     todoist::GetProjectsResponse,
 };
 use serde::Serialize;
+use std::panic::AssertUnwindSafe;
 
 const URL: &str = "https://todoist.com/api/v7/sync";
 
@@ -27,16 +28,17 @@ type TodoistClient = Client<HttpsConnector<HttpConnector>>;
 
 pub struct TodoistApi {
     token: String,
-    client: TodoistClient,
+    client: AssertUnwindSafe<TodoistClient>,
 }
 
 impl TodoistApi {
     pub fn new(token: String) -> TodoistApi {
         let https = HttpsConnector::new(4).expect("TLS initialization failed");
+        let client = Client::builder()
+            .build(https);
         TodoistApi {
             token,
-            client: Client::builder()
-                .build(https),
+            client: AssertUnwindSafe(client),
         }
     }
 

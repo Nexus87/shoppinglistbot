@@ -3,6 +3,7 @@ use todoist::shopping_list_api::ShoppingListApi;
 use tokio::runtime::Runtime;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct EinkaufenCommandHandler {
     api: Arc<TodoistApi>,
     project_id: i64,

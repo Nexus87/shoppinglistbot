@@ -4,15 +4,16 @@ use storage::Storage;
 use telegram_bot::types::ChatId;
 use bincode::{serialize, deserialize};
 use serde::de::DeserializeOwned;
+use std::panic::AssertUnwindSafe;
 
 pub struct SledStorage {
-    db: Db,
+    db: AssertUnwindSafe<Db>,
 }
 
 impl SledStorage {
     pub fn new(path: &str) -> Self {
         SledStorage {
-            db: Db::start_default(path).unwrap(),
+            db: AssertUnwindSafe(Db::start_default(path).unwrap()),
         }
     }
     fn chat_id_to_u8(x: ChatId) -> [u8; 8] {

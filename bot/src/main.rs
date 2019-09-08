@@ -1,4 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro)]
+//#![feature(proc_macro_hygiene, decl_macro)]
 
 extern crate byteorder;
 extern crate futures;
@@ -23,6 +23,7 @@ mod errors;
 mod routes;
 mod services;
 mod storage;
+mod middleware;
 
 use errors::ShoppingListBotError;
 use routes::get_routes;
@@ -64,7 +65,7 @@ fn run() -> Result<(), ShoppingListBotError> {
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
     let message_service = get_message_send_service(&bot_token);
-    gotham::start("0.0.0.0:7878", get_routes(telegram_message_service,  message_service));
+    gotham::start("0.0.0.0:7878", get_routes(  message_service, telegram_message_service));
     Ok(())
 //    rocket::ignite()
 //        .manage(telegram_message_service)

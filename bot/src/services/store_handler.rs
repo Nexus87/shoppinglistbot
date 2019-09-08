@@ -1,6 +1,6 @@
 use storage::Storage;
 use std::sync::Arc;
-
+#[derive(Clone)]
 pub struct StoreCommandHandler {
     storage: Arc<dyn Storage>
 }

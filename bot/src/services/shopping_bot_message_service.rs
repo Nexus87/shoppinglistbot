@@ -2,7 +2,6 @@ use errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::types::UserId;
-use services::TelegramMessageSendService;
 use telegram_bot::types::Update;
 use storage::Storage;
 use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
@@ -44,18 +43,19 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     None
 }
 
-pub struct ShoppingBotMessageService {
+#[derive(Clone)]
+pub struct ShoppingBotService {
     client_ids: Vec<UserId>,
     einkaufen_handler: EinkaufenCommandHandler,
     store_handler: StoreCommandHandler,
     db: Arc<dyn Storage>
 }
 
-impl ShoppingBotMessageService {
+impl ShoppingBotService {
     pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Self {
         let api = TodoistApi::new(token);
         let db: Arc<dyn Storage> = Arc::from(db);
-        ShoppingBotMessageService {
+        ShoppingBotService {
             client_ids,
             einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
             db: db.clone(),

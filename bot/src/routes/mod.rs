@@ -2,7 +2,7 @@ use telegram_bot::Update;
 use gotham::handler::{Handler, HandlerError, HandlerFuture, IntoHandlerError, NewHandler};
 use gotham::state::{State, FromState};
 use futures::prelude::*;
-use services::{ShoppingBotMessageService, TelegramMessageSendService};
+use services::{ShoppingBotService, TelegramMessageSendService};
 use hyper::{Body, StatusCode};
 use failure::_core::str::from_utf8;
 use futures::future;
@@ -11,23 +11,24 @@ use gotham::router::Router;
 use gotham::router::builder::{build_simple_router, DrawRoutes, DefineSingleRoute};
 use gotham::helpers::http::response::create_empty_response;
 
+#[derive(Clone)]
 pub struct TelegramWebhook {
     telegram_service: TelegramMessageSendService,
-    send_message_service: ShoppingBotMessageService,
+    shopping_bot_service: ShoppingBotService,
 }
 
 impl Handler for TelegramWebhook {
     fn handle(self, mut state: State) -> Box<HandlerFuture> {
         let result = extract_json::<Update>(&mut state)
-            .then(|payload| {
-                let res = match self.telegram_service.handle_message(&payload.unwrap()) {
+            .then(move |payload| {
+                let res = match self.shopping_bot_service.handle_message(&payload.unwrap()) {
                     Err(e) =>{
                         error!("{}", e);
                         create_empty_response(&state, StatusCode::INTERNAL_SERVER_ERROR)
                     } 
                         
                     Ok(Some((c, m))) => {
-                        self.send_message_service.send_message(c, &m);
+                        self.telegram_service.send_message(c, &m);
                         create_empty_response(&state, StatusCode::OK)
                     }
                     _ => create_empty_response(&state, StatusCode::OK)
@@ -47,8 +48,8 @@ impl NewHandler for TelegramWebhook {
     }
 }
 impl TelegramWebhook {
-    pub fn new(telegram_service: TelegramMessageSendService, send_message_service: ShoppingBotMessageService) -> Self {
-        TelegramWebhook{telegram_service, send_message_service}
+    pub fn new(telegram_service: TelegramMessageSendService, send_message_service: ShoppingBotService) -> Self {
+        TelegramWebhook{telegram_service, shopping_bot_service: send_message_service }
     }
 }
 //#[post("/webhook", format = "json", data = "<payload>")]
@@ -70,7 +71,7 @@ fn extract_json<T>(state: &mut State) -> impl Future<Item=T, Error=HandlerError>
         .and_then(|body| {
             let b = body.to_vec();
             let result = from_utf8(&b).unwrap();
-            future::ok(result)
+            future::ok(result.to_string())
         })
         .and_then(|v| {
             let result = serde_json::from_str::<T>(&v).unwrap();
@@ -79,7 +80,7 @@ fn extract_json<T>(state: &mut State) -> impl Future<Item=T, Error=HandlerError>
         .map_err(|e| e.into_handler_error())
 }
 
-pub fn get_routes(telegram_service: TelegramMessageSendService, send_message_service: ShoppingBotMessageService) -> Router {
+pub fn get_routes(telegram_service: TelegramMessageSendService, send_message_service: ShoppingBotService) -> Router {
     build_simple_router(move |route| {
         route
             .post("/webhook")
