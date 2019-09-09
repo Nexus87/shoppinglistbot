@@ -5,6 +5,8 @@ use telegram_bot::{
 };
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
+use errors::ShoppingListBotError;
+use futures::Future;
 
 #[derive(Clone)]
 pub struct TelegramMessageSendService {
@@ -19,13 +21,20 @@ impl TelegramMessageSendService {
         }
     }
 
-    pub fn send_message(&self, chat: MessageChat, message: &String) {
+    pub fn send_message(&self, chat: MessageChat, message: &String) -> Box<dyn Future<Item=(), Error=ShoppingListBotError>+ Send>{
         info!("Send message {} to {:?}", message, chat.id());
-        let f = self.api.send(chat.text(message));
-        let mut runtime = tokio::runtime::Runtime::new().expect("failed to start new Runtime");
-        runtime
-            .block_on(f)
-            .expect("shutdown cannot error");
-        info!("Done sending message {} to {:?}", message, chat.id());
+        if message.is_empty() {
+            return Box::new(futures::empty())
+        }
+        
+        let res = self.api.send(chat.text(message))
+            .map(|_| ())
+            .map_err(|e| e.into());
+        Box::new(res)
+//        let mut runtime = tokio::runtime::Runtime::new().expect("failed to start new Runtime");
+//        runtime
+//            .block_on(f)
+//            .expect("shutdown cannot error");
+//        info!("Done sending message {} to {:?}", message, chat.id());
     }
 }

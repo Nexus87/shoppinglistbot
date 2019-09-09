@@ -1,7 +1,7 @@
 use todoist::shopping_list_api::TodoistApi;
-use todoist::shopping_list_api::ShoppingListApi;
-use tokio::runtime::Runtime;
 use std::sync::Arc;
+use futures::{Future};
+use errors::ShoppingListBotError;
 
 #[derive(Clone)]
 pub struct EinkaufenCommandHandler {
@@ -18,26 +18,32 @@ impl EinkaufenCommandHandler {
         }
     }
     
-    pub fn handle_message(&self, cmd_args: &str) -> Option<String> {
+    pub fn handle_message(self, cmd_args: String) -> impl Future<Item=String, Error=ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
-        let future = self.api.add_tasks(&items, self.project_id);
-        let mut runtime = Runtime::new().expect("failed to start new Runtime");
-        runtime
-            .block_on(future)
-            .expect("shutdown cannot error");
         
-        if items.len() > 0 
-            {Some(format!("Added {} items", items.len() )) }
-            else {Some("Nothing to add".to_string())} 
+        self.api.add_tasks(items, self.project_id)
+            .map(|ret| {
+                if ret.len() > 0
+                {format!("Added {} items", ret.len() ) }
+                else {"Nothing to add".to_string()}        
+            })
+            .map_err(|err| err.into())
+//        let mut runtime = Runtime::new().expect("failed to start new Runtime");
+//        runtime
+//            .block_on(future)
+//            .expect("shutdown cannot error");
+        
+         
     }
     
 }
 
-fn split_args(cmd_args: &str) -> Vec<&str> {
+fn split_args(cmd_args: String) -> Vec<String> {
     cmd_args.split(';')
         .map(str::trim)
+        .map(|x| x.to_string())
         .filter(|x| !x.is_empty())
         .collect()
 }

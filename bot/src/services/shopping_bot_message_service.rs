@@ -1,12 +1,16 @@
-use errors::ShoppingListBotError;
-use super::einkaufen_handler::EinkaufenCommandHandler;
-use todoist::shopping_list_api::TodoistApi;
-use telegram_bot::types::UserId;
-use telegram_bot::types::Update;
-use storage::Storage;
-use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
-use services::store_handler::StoreCommandHandler;
 use std::sync::Arc;
+
+use futures::Future;
+use telegram_bot::{Message, MessageChat, MessageKind, UpdateKind};
+use telegram_bot::types::Update;
+use telegram_bot::types::UserId;
+
+use errors::ShoppingListBotError;
+use services::store_handler::StoreCommandHandler;
+use storage::Storage;
+use todoist::shopping_list_api::TodoistApi;
+
+use super::einkaufen_handler::EinkaufenCommandHandler;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -48,8 +52,10 @@ pub struct ShoppingBotService {
     client_ids: Vec<UserId>,
     einkaufen_handler: EinkaufenCommandHandler,
     store_handler: StoreCommandHandler,
-    db: Arc<dyn Storage>
+    db: Arc<dyn Storage>,
+
 }
+
 
 impl ShoppingBotService {
     pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Self {
@@ -63,41 +69,56 @@ impl ShoppingBotService {
         }
     }
 
-    pub fn handle(&self, message: &Message) -> Option<String> {
+    pub fn handle(&self, message: &Message) -> Box<dyn Future<Item=String, Error=ShoppingListBotError> + Send> {
+        let default = Box::new(futures::empty());
+        let einkaufen_handler = self.einkaufen_handler.clone();
+        let store_handler = self.store_handler.clone();
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);
-            return None;
+            return default;
         }
         if let Some((command, args)) = parse_message(&message.kind) {
             info!("Command {:?}", command);
-            match command { 
-                Command::Einkaufen => return self.einkaufen_handler.handle_message(&args),
+            match command {
+                Command::Einkaufen => return Box::new(einkaufen_handler.handle_message(args)),
                 Command::TestStore => {
                     self.store_handler.handle_message_store(&args);
-                    return None;
-                },
-                Command::TestGet => return self.store_handler.handle_message_load(),
+                    return default;
+                }
+                Command::TestGet => return Box::new(store_handler.handle_message_load()),
                 _ => {
                     info!("Unknown command {:?}", command);
-                    return None
+                    return default;
                 }
             }
         }
-        None
+        default
     }
-    pub fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError> {
-        if let UpdateKind::Message(message) = &update.kind {
-            let last_update_id = self.db.get_last_update_id(message.chat.id())?;
-            if let Some(id) = last_update_id {
-                info!("Last id: {}, current id: {}", id, update.id);
-                if id >= update.id {
-                    return Ok(None);
-                }
-            }
-            self.db.set_last_update_id(message.chat.id(), update.id)?;
-            return Ok(self.handle(message).map(|m| (message.chat.clone(), m)));
+    pub fn handle_message(self, update: Update) -> Box<dyn Future<Item=(MessageChat, String), Error=ShoppingListBotError> + Send + 'static> {
+        let update_id = update.id;
+        if let UpdateKind::Message(message) = update.kind {
+            let db = self.db.clone();
+            let res = futures::done(db.get_last_update_id(message.chat.id()))
+                .and_then(move |last_update_id| {
+                    if let Some(id) = last_update_id {
+                        info!("Last id: {}, current id: {}", id, update_id);
+                        if id >= update_id {
+                            let r: Box<dyn Future<Item=Message, Error=ShoppingListBotError> + Send+ 'static> = Box::new(futures::empty());
+                            return r;
+                        }
+                    }
+                    let res = futures::done(db.set_last_update_id(message.chat.id(), update_id))
+                        .map(|_| message);
+                    Box::new(res)
+                })
+                .and_then(move |message| {
+                    self.handle(&message)
+                        .map(move |m| (message.chat.clone(), m))
+                })
+                .map_err(|err| err.into());
+            return Box::new(res);
         }
-        Ok(None)
+        Box::new(futures::empty())
     }
 }
 
