@@ -24,6 +24,13 @@ pub struct TelegramHandlerMiddleware {
     db: Arc<dyn Storage>
 }
 
+impl TelegramHandlerMiddleware {
+    pub fn new(db: &Arc<dyn Storage>) -> Self{
+        TelegramHandlerMiddleware{
+            db: db.clone()
+        }
+    }
+}
 impl NewMiddleware for TelegramHandlerMiddleware {
     type Instance = TelegramHandlerMiddleware;
 

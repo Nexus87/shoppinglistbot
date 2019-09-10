@@ -63,9 +63,9 @@ fn run() -> Result<(), ShoppingListBotError> {
     let (todoist_token, project_id, client_ids, bot_token) = read_env_vars()?;
 
     let db = get_storage(&db_path);
-    let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
+    let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids);
     let message_service = get_message_send_service(&bot_token);
-    gotham::start("0.0.0.0:7878", get_routes(  message_service, telegram_message_service));
+    gotham::start("0.0.0.0:7878", get_routes(&db, message_service, telegram_message_service));
     Ok(())
 //    rocket::ignite()
 //        .manage(telegram_message_service)

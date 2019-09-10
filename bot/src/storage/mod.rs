@@ -2,6 +2,7 @@ use errors::ShoppingListBotError;
 use telegram_bot::types::ChatId;
 use storage::sled::SledStorage;
 use std::panic::RefUnwindSafe;
+use std::sync::Arc;
 
 pub mod sled;
 pub trait Storage: Send + Sync + RefUnwindSafe{
@@ -12,6 +13,6 @@ pub trait Storage: Send + Sync + RefUnwindSafe{
     fn set_temp(&self, key: &str, value: String) -> Result<(), ShoppingListBotError>;
 }
 
-pub fn get_storage(path: &str) -> Box<dyn Storage> {
-    Box::new(SledStorage::new(path))
+pub fn get_storage(path: &str) -> Arc<dyn Storage> {
+    Arc::new(SledStorage::new(path))
 }
