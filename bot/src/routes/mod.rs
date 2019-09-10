@@ -2,7 +2,7 @@ use failure::_core::str::from_utf8;
 use futures::future;
 use futures::prelude::*;
 use gotham::error::Result;
-use gotham::handler::{Handler, HandlerError, HandlerFuture, IntoHandlerError, NewHandler};
+use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::helpers::http::response::create_empty_response;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;

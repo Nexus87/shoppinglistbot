@@ -6,9 +6,9 @@ use telegram_bot::types::Update;
 use telegram_bot::types::UserId;
 
 use errors::ShoppingListBotError;
-use services::store_handler::StoreCommandHandler;
 use storage::Storage;
 use todoist::shopping_list_api::TodoistApi;
+//        return Box::new(res);
 
 use super::einkaufen_handler::EinkaufenCommandHandler;
 
@@ -16,8 +16,6 @@ use super::einkaufen_handler::EinkaufenCommandHandler;
 pub enum Command {
     Config,
     Einkaufen,
-    TestStore,
-    TestGet,
     None,
 }
 
@@ -26,8 +24,6 @@ impl From<&str> for Command {
         match s {
             "/config" => Command::Config,
             "/einkaufen" => Command::Einkaufen,
-            "/store" => Command::TestStore,
-            "/load" => Command::TestGet,
             _ => Command::None,
         }
     }
@@ -51,7 +47,6 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
 pub struct ShoppingBotService {
     client_ids: Vec<UserId>,
     einkaufen_handler: EinkaufenCommandHandler,
-    store_handler: StoreCommandHandler,
     db: Arc<dyn Storage>,
 
 }
@@ -65,14 +60,12 @@ impl ShoppingBotService {
             client_ids,
             einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
             db: db.clone(),
-            store_handler: StoreCommandHandler::new(db),
         }
     }
 
     pub fn handle(&self, message: &Message) -> Box<dyn Future<Item=String, Error=ShoppingListBotError> + Send> {
         let default = Box::new(futures::empty());
         let einkaufen_handler = self.einkaufen_handler.clone();
-        let store_handler = self.store_handler.clone();
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);
             return default;
@@ -81,11 +74,6 @@ impl ShoppingBotService {
             info!("Command {:?}", command);
             match command {
                 Command::Einkaufen => return Box::new(einkaufen_handler.handle_message(args)),
-                Command::TestStore => {
-                    self.store_handler.handle_message_store(&args);
-                    return default;
-                }
-                Command::TestGet => return Box::new(store_handler.handle_message_load()),
                 _ => {
                     info!("Unknown command {:?}", command);
                     return default;

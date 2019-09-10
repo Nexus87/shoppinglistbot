@@ -5,7 +5,6 @@ use storage::Storage;
 
 pub mod shopping_bot_message_service;
 mod einkaufen_handler;
-mod store_handler;
 pub mod telegram_message_send_service;
 
 

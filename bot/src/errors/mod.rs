@@ -1,5 +1,7 @@
 use sled;
+use gotham::handler::{IntoHandlerError, HandlerError};
 use std::error::Error;
+use failure::Fail;
 
 #[derive(Debug, Fail)]
 pub enum ShoppingListBotError {
@@ -53,5 +55,12 @@ impl From<telegram_bot::Error> for ShoppingListBotError {
         ShoppingListBotError::TelegramError {
             err: err.description().to_string()
         }
+    }
+}
+
+impl IntoHandlerError for ShoppingListBotError {
+    fn into_handler_error(self) -> HandlerError {
+        trace!(" converting Error to HandlerError: {}", self);
+        self.compat().into_handler_error()
     }
 }
