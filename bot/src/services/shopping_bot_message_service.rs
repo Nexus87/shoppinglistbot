@@ -1,4 +1,4 @@
-use futures::Future;
+use futures::{Future, future};
 use telegram_bot::{Message, MessageChat, MessageKind};
 use telegram_bot::types::UserId;
 
@@ -58,7 +58,7 @@ impl ShoppingBotService {
     }
 
     pub fn handle(&self, message: &Message) -> Box<dyn Future<Item=String, Error=ShoppingListBotError> + Send> {
-        let default = Box::new(futures::empty());
+        let default = Box::new(future::ok("".to_string()));
         let einkaufen_handler = self.einkaufen_handler.clone();
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);

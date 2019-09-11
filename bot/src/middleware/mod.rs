@@ -88,13 +88,16 @@ impl Middleware for TelegramHandlerMiddleware {
                         state.put(TelegramHandlerMiddlewareDate{
                             message
                         });
+                        info!("Handling message");
                         chain(state)
                     }
                     Ok(None) => {
+                        info!("No relevant message");
                         let res = create_empty_response(&state, StatusCode::OK);
                         Box::new(future::ok((state, res)))
                     }
                     Err(e) => {
+                        info!("Error!");
                         let err = (state, e.into_handler_error());
                         Box::new(future::err(err))
                     }

@@ -30,11 +30,6 @@ impl EinkaufenCommandHandler {
                 else {"Nothing to add".to_string()}        
             })
             .map_err(|err| err.into())
-//        let mut runtime = Runtime::new().expect("failed to start new Runtime");
-//        runtime
-//            .block_on(future)
-//            .expect("shutdown cannot error");
-        
          
     }
     
