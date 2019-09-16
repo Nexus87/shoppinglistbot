@@ -47,7 +47,7 @@ fn split_args(cmd_args: String) -> Vec<String> {
 #[test]
 fn split_args_test() {
     let args = "1; 4; 5 ; 6; ";
-    let items = split_args(args);
+    let items = split_args(args.to_string());
     let expected = vec![
         String::from("1"),
         String::from("4"),

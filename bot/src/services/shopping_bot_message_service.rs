@@ -113,7 +113,5 @@ parse_message_test! {
     einkaufen_no_args: ("/einkaufen", (Command::Einkaufen, "")),
     config_args: ("/config bla bla", (Command::Config, "bla bla")),
     config_no_args: ("/config", (Command::Config, "")),
-    load_no_args: ("/load", (Command::TestGet, "")),
-    store_args: ("/store bla bla", (Command::TestStore, "bla bla")),
     none: ("bla bla", (Command::None, "bla bla")),
 }
