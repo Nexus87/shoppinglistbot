@@ -8,7 +8,6 @@ use hyper::{
     header::HeaderValue,
 };
 use bytes::buf::ext::BufExt;
-use futures::future::Future;
 use crate::requests::GetProjectsRequest;
 use crate::types::{
     requests::{
@@ -54,7 +53,7 @@ impl TodoistApi {
         Ok(hyper::body::aggregate(res).await?)
     }
 
-    async fn get_projects(&self) -> Result<GetProjectsResponse, hyper::Error> {
+    pub async fn get_projects(&self) -> Result<GetProjectsResponse, hyper::Error> {
         let json = GetProjectsRequest {
             token: self.token.clone(),
             sync_token: "*".to_string(),
@@ -67,7 +66,7 @@ impl TodoistApi {
         Ok(response)
     }
 
-    async fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Result<(), hyper::Error> {
+    pub async fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Result<(), hyper::Error> {
         let commands: Vec<Command<Task>> = texts.iter()
             .map(|x| Task::new(x, project_id))
             .map(Command::new_add_task)
