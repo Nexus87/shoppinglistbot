@@ -2,7 +2,7 @@ use rocket_contrib::json::Json;
 use telegram_bot::{Update};
 use rocket::State;
 use rocket::Route;
-use services::{TelegramMessageService, MessageSendService};
+use crate::services::{TelegramMessageService, MessageSendService};
 
 
 #[post("/webhook", format = "json", data = "<payload>")]

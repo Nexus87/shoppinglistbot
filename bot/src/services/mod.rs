@@ -1,8 +1,8 @@
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use telegram_bot::{Update, UserId, MessageChat};
-use services::shopping_bot_message_service::ShoppingBotMessageService;
-use services::telegram_message_send_service::TelegramMessageSendService;
-use storage::Storage;
+use crate::services::shopping_bot_message_service::ShoppingBotMessageService;
+use crate::services::telegram_message_send_service::TelegramMessageSendService;
+use crate::storage::Storage;
 
 mod shopping_bot_message_service;
 mod einkaufen_handler;

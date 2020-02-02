@@ -1,6 +1,6 @@
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use telegram_bot::types::ChatId;
-use storage::sled::SledStorage;
+use crate::storage::sled::SledStorage;
 
 pub mod sled;
 pub trait Storage: Send + Sync {

@@ -1,5 +1,4 @@
 use sled;
-use std::error::Error;
 
 #[derive(Debug, Fail)]
 pub enum ShoppingListBotError {
@@ -32,7 +31,7 @@ impl From<sled::Error> for ShoppingListBotError {
 impl From<bincode::Error> for ShoppingListBotError {
     fn from(err: Box<bincode::ErrorKind>) -> Self {
         ShoppingListBotError::SerializationError {
-            err: err.description().to_string()
+            err: err.to_string()
         }
     }
 }

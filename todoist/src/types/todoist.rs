@@ -1,4 +1,4 @@
-use types::primitives::Integer;
+use crate::types::primitives::Integer;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetProjectsResponse {

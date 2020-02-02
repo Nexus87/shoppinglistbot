@@ -1,6 +1,6 @@
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use sled::Db;
-use storage::Storage;
+use crate::storage::Storage;
 use telegram_bot::types::ChatId;
 use bincode::{serialize, deserialize};
 use serde::de::DeserializeOwned;
