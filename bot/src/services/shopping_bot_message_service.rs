@@ -8,6 +8,8 @@ use crate::storage::Storage;
 use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
 use crate::services::store_handler::StoreCommandHandler;
 use std::sync::Arc;
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -43,11 +45,11 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     }
     None
 }
-
+#[derive(Clone)]
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
-    einkaufen_handler: EinkaufenCommandHandler,
-    store_handler: StoreCommandHandler,
+    einkaufen_handler: Arc<EinkaufenCommandHandler>,
+    store_handler: Arc<StoreCommandHandler>,
     db: Arc<dyn Storage>
 }
 
@@ -57,13 +59,13 @@ impl ShoppingBotMessageService {
         let db: Arc<dyn Storage> = Arc::from(db);
         ShoppingBotMessageService {
             client_ids,
-            einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
+            einkaufen_handler: Arc::new(EinkaufenCommandHandler::new(api, project_id)),
             db: db.clone(),
-            store_handler: StoreCommandHandler::new(db),
+            store_handler: Arc::new(StoreCommandHandler::new(db)),
         }
     }
 
-    pub fn handle(&self, message: &Message) -> Option<String> {
+    pub async fn handle(&self, message: &Message) -> Option<String> {
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);
             return None;
@@ -71,7 +73,7 @@ impl ShoppingBotMessageService {
         if let Some((command, args)) = parse_message(&message.kind) {
             match command { 
                 Command::Einkaufen => {
-                    self.einkaufen_handler.handle_message(&args);
+                    self.einkaufen_handler.handle_message(&args).await.unwrap();
                     return None;
                 },
                 Command::TestStore => {
@@ -87,19 +89,25 @@ impl ShoppingBotMessageService {
 }
 
 impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError> {
-        if let UpdateKind::Message(message) = &update.kind {
-            let last_update_id = self.db.get_last_update_id(message.chat.id())?;
-            if let Some(id) = last_update_id {
-                info!("Last id: {}, current id: {}", id, update.id);
-                if id >= update.id {
-                    return Ok(None);
+    fn handle_message(&self, update: &Update) -> Pin<Box<dyn Future<Output= Result<Option<(MessageChat, String)>, ShoppingListBotError>>+ Send>> {
+        let update = update.clone();
+        let api = self.clone();
+        let result = async move {
+            if let UpdateKind::Message(message) = update.kind {
+                let last_update_id = api.db.get_last_update_id(message.chat.id())?;
+                if let Some(id) = last_update_id {
+                    info!("Last id: {}, current id: {}", id, update.id);
+                    if id >= update.id {
+                        return Ok(None);
+                    }
                 }
+                api.db.set_last_update_id(message.chat.id(), update.id)?;
+                return Ok(api.handle(&message).await.map(|m| (message.chat.clone(), m)));
             }
-            self.db.set_last_update_id(message.chat.id(), update.id)?;
-            return Ok(self.handle(message).map(|m| (message.chat.clone(), m)));
-        }
-        Ok(None)
+            Ok(None)
+        };
+
+        Box::pin(result)
     }
 }
 

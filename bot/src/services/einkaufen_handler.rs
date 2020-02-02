@@ -1,7 +1,5 @@
 use todoist::shopping_list_api::TodoistApi;
-use todoist::shopping_list_api::ShoppingListApi;
-use tokio::prelude::future::Future;
-
+use crate::errors::ShoppingListBotError;
 pub struct EinkaufenCommandHandler {
     api: TodoistApi,
     project_id: i64,
@@ -16,14 +14,12 @@ impl EinkaufenCommandHandler {
         }
     }
     
-    pub fn handle_message(&self, cmd_args: &str) {
+    pub async fn handle_message(&self, cmd_args: &str) -> Result<(), ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
-        let future = self.api.add_tasks(&items, self.project_id)
-            .map(|_| ())
-            .map_err(|_| ());
-        tokio::run(future);
+        self.api.add_tasks(&items, self.project_id).await?;
+        Ok(())
     }
     
 }
