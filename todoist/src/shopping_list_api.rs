@@ -7,8 +7,8 @@ use hyper::{
     Request,
     header::HeaderValue,
 };
+use bytes::buf::ext::BufExt;
 use futures::future::Future;
-use futures::stream::Stream;
 use crate::requests::GetProjectsRequest;
 use crate::types::{
     requests::{
@@ -19,7 +19,6 @@ use crate::types::{
     primitives::Integer,
     todoist::GetProjectsResponse,
 };
-use serde::Serialize;
 
 const URL: &str = "https://todoist.com/api/v8/sync";
 
@@ -32,7 +31,7 @@ pub struct TodoistApi {
 
 impl TodoistApi {
     pub fn new(token: String) -> TodoistApi {
-        let https = HttpsConnector::new(4).expect("TLS initialization failed");
+        let https = HttpsConnector::new();
         TodoistApi {
             token,
             client: Client::builder()
@@ -40,8 +39,7 @@ impl TodoistApi {
         }
     }
 
-    fn make_request<T> (&self, payload: &T) -> Box<dyn Future<Item=hyper::Chunk, Error=hyper::Error> +Send> where T: Serialize  {
-        let payload = serde_json::to_string(&payload).unwrap();
+    async fn make_request (&self, payload: String) -> Result<impl hyper::body::Buf, hyper::Error> {
         let uri: hyper::Uri = URL.parse().unwrap();
         let mut req = Request::new(Body::from(payload));
         *req.method_mut() = Method::POST;
@@ -50,49 +48,34 @@ impl TodoistApi {
             hyper::header::CONTENT_TYPE,
             HeaderValue::from_static("application/json"),
         );
-        let res = self.client.request(req)
-            .and_then(|res| {
-                println!("POST: {}", res.status());
+        let res = self.client.request(req).await?;
+        // println!("POST: {}", res.status());
 
-                res.into_body().concat2()
-            });
-        Box::new(res)
+        Ok(hyper::body::aggregate(res).await?)
     }
-}
 
-pub trait ShoppingListApi {
-    fn get_projects(&self) -> Box<dyn Future<Item=GetProjectsResponse, Error=hyper::Error>>;
-    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send>;
-    fn add_task(&self, text: &str, project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send> {
-        let texts = [text];
-        self.add_tasks(&texts, project_id)
-    }
-}
-
-impl ShoppingListApi for TodoistApi {
-    fn get_projects(&self) -> Box<dyn Future<Item=GetProjectsResponse, Error=hyper::Error>> {
+    async fn get_projects(&self) -> Result<GetProjectsResponse, hyper::Error> {
         let json = GetProjectsRequest {
             token: self.token.clone(),
             sync_token: "*".to_string(),
             resource_types: "[\"projects\"]".to_string(),
         };
-        let result = self.make_request(&json)
-            .map(move |body| {
-                println!("{:#?}", body);
-                let response = serde_json::from_slice::<GetProjectsResponse>(&body).unwrap();
-                println!("{:#?}", response);
-                response
-            });
-        Box::new(result)
+        let payload = serde_json::to_string(&json).unwrap();
+        let body = self.make_request(payload).await?;
+        let response = serde_json::from_reader(body.reader()).unwrap();
+        println!("{:#?}", response);
+        Ok(response)
     }
 
-    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send> {
+    async fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Result<(), hyper::Error> {
         let commands: Vec<Command<Task>> = texts.iter()
             .map(|x| Task::new(x, project_id))
             .map(Command::new_add_task)
             .collect();
 
         let request = WriteResource::new(&commands, &self.token).unwrap();
-        Box::new(self.make_request(&request).map(|_| ()))
+        let payload = serde_json::to_string(&request).unwrap();
+        self.make_request(payload).await?;
+        Ok(())
     }
 }
