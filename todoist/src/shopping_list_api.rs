@@ -9,8 +9,8 @@ use hyper::{
 };
 use futures::future::Future;
 use futures::stream::Stream;
-use requests::GetProjectsRequest;
-use types::{
+use crate::requests::GetProjectsRequest;
+use crate::types::{
     requests::{
         Task,
         Command,
@@ -40,7 +40,7 @@ impl TodoistApi {
         }
     }
 
-    fn make_request<T> (&self, payload: &T) -> Box<Future<Item=hyper::Chunk, Error=hyper::Error> +Send> where T: Serialize  {
+    fn make_request<T> (&self, payload: &T) -> Box<dyn Future<Item=hyper::Chunk, Error=hyper::Error> +Send> where T: Serialize  {
         let payload = serde_json::to_string(&payload).unwrap();
         let uri: hyper::Uri = URL.parse().unwrap();
         let mut req = Request::new(Body::from(payload));
@@ -61,16 +61,16 @@ impl TodoistApi {
 }
 
 pub trait ShoppingListApi {
-    fn get_projects(&self) -> Box<Future<Item=GetProjectsResponse, Error=hyper::Error>>;
-    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send>;
-    fn add_task(&self, text: &str, project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+    fn get_projects(&self) -> Box<dyn Future<Item=GetProjectsResponse, Error=hyper::Error>>;
+    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send>;
+    fn add_task(&self, text: &str, project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send> {
         let texts = [text];
         self.add_tasks(&texts, project_id)
     }
 }
 
 impl ShoppingListApi for TodoistApi {
-    fn get_projects(&self) -> Box<Future<Item=GetProjectsResponse, Error=hyper::Error>> {
+    fn get_projects(&self) -> Box<dyn Future<Item=GetProjectsResponse, Error=hyper::Error>> {
         let json = GetProjectsRequest {
             token: self.token.clone(),
             sync_token: "*".to_string(),
@@ -86,7 +86,7 @@ impl ShoppingListApi for TodoistApi {
         Box::new(result)
     }
 
-    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<Future<Item=(), Error=hyper::Error> + Send> {
+    fn add_tasks(&self, texts: &[&str], project_id: Integer) -> Box<dyn Future<Item=(), Error=hyper::Error> + Send> {
         let commands: Vec<Command<Task>> = texts.iter()
             .map(|x| Task::new(x, project_id))
             .map(Command::new_add_task)

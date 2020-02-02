@@ -1,12 +1,12 @@
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::types::UserId;
-use services::TelegramMessageService;
+use crate::services::TelegramMessageService;
 use telegram_bot::types::Update;
-use storage::Storage;
+use crate::storage::Storage;
 use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
-use services::store_handler::StoreCommandHandler;
+use crate::services::store_handler::StoreCommandHandler;
 use std::sync::Arc;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
