@@ -2,8 +2,8 @@ use futures::{Future, future};
 use telegram_bot::{Message, MessageChat, MessageKind};
 use telegram_bot::types::UserId;
 
-use errors::ShoppingListBotError;
-use todoist::shopping_list_api::TodoistApi;
+use crate::errors::ShoppingListBotError;
+use todoist::shopping_list_api::ShoppingListApi;
 
 use super::einkaufen_handler::EinkaufenCommandHandler;
 
@@ -50,15 +50,15 @@ pub struct ShoppingBotService {
 
 impl ShoppingBotService {
     pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>) -> Self {
-        let api = TodoistApi::new(token);
+        let api = ShoppingListApi::new(token);
         ShoppingBotService {
             client_ids,
             einkaufen_handler: EinkaufenCommandHandler::new(api, project_id),
         }
     }
 
-    pub fn handle(&self, message: &Message) -> Box<dyn Future<Item=String, Error=ShoppingListBotError> + Send> {
-        let default = Box::new(future::ok("".to_string()));
+    pub async fn handle(&self, message: &Message) -> Result<String, ShoppingListBotError> {
+        let default = Ok("".to_string());
         let einkaufen_handler = self.einkaufen_handler.clone();
         if !self.client_ids.contains(&message.from.id) {
             warn!("Unknown client: {:?}", message.from);
@@ -67,20 +67,22 @@ impl ShoppingBotService {
         if let Some((command, args)) = parse_message(&message.kind) {
             info!("Command {:?}", command);
             match command {
-                Command::Einkaufen => return Box::new(einkaufen_handler.handle_message(args)),
+                Command::Einkaufen => { 
+                    einkaufen_handler.handle_message(args).await?; 
+                    Ok("".to_string())
+                },
                 _ => {
                     info!("Unknown command {:?}", command);
-                    return default;
+                    default
                 }
             }
         }
-        default
+        else {default}
+
     }
-    pub fn handle_message(self, message: Message) -> Box<dyn Future<Item=(MessageChat, String), Error=ShoppingListBotError> + Send + 'static> {
-        let res = self.handle(&message)
-            .map(move |m| (message.chat.clone(), m))
-            .map_err(|err| err.into());
-        return Box::new(res);
+    pub async fn handle_message(self, message: Message) -> Result<(MessageChat, String), ShoppingListBotError> {
+        let res = self.handle(&message).await?;
+        Ok((message.chat.clone(), res))
     }
 }
 

@@ -5,7 +5,7 @@ use telegram_bot::{
 };
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use futures::{Future, future};
 
 #[derive(Clone)]
@@ -21,15 +21,13 @@ impl TelegramMessageSendService {
         }
     }
 
-    pub fn send_message(&self, chat: MessageChat, message: &String) -> Box<dyn Future<Item=(), Error=ShoppingListBotError>+ Send>{
+    pub async fn send_message(&self, chat: MessageChat, message: &String) -> Result<(), ShoppingListBotError>{
         info!("Send message {} to {:?}", message, chat.id());
         if message.is_empty() {
-            return Box::new(future::ok(()))
+            return Ok(());
         }
         
-        let res = self.api.send(chat.text(message))
-            .map(|_| ())
-            .map_err(|e| e.into());
-        Box::new(res)
+        self.api.send(chat.text(message)).await?;
+        Ok(())
     }
 }

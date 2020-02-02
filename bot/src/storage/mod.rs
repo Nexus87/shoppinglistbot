@@ -1,6 +1,6 @@
-use errors::ShoppingListBotError;
-use telegram_bot::types::ChatId;
-use storage::sled::SledStorage;
+use crate::errors::ShoppingListBotError;
+use crate::telegram_bot::types::ChatId;
+use crate::storage::sled::SledStorage;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 

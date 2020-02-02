@@ -1,6 +1,6 @@
 use telegram_bot::{UserId};
-pub use services::shopping_bot_message_service::ShoppingBotService;
-pub use services::telegram_message_send_service::TelegramMessageSendService;
+pub use crate::services::shopping_bot_message_service::ShoppingBotService;
+pub use crate::services::telegram_message_send_service::TelegramMessageSendService;
 
 pub mod shopping_bot_message_service;
 mod einkaufen_handler;

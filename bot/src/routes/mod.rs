@@ -7,14 +7,14 @@ use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::helpers::http::response::create_empty_response;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::single::single_pipeline;
-use gotham::router::builder::{build_router, build_simple_router, DefineSingleRoute, DrawRoutes};
+use gotham::router::builder::{build_router, DefineSingleRoute, DrawRoutes};
 use gotham::router::Router;
 use gotham::state::{FromState, State};
 use hyper::StatusCode;
 
-use middleware::{TelegramHandlerMiddleware, TelegramHandlerMiddlewareDate};
-use services::{ShoppingBotService, TelegramMessageSendService};
-use storage::Storage;
+use crate::middleware::{TelegramHandlerMiddleware, TelegramHandlerMiddlewareDate};
+use crate::services::{ShoppingBotService, TelegramMessageSendService};
+use crate::storage::Storage;
 
 #[derive(Clone)]
 pub struct TelegramWebhook {
