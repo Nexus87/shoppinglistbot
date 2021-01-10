@@ -56,7 +56,7 @@ fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String, u16), ShoppingLi
             x.parse::<u16>().map_err(|_| ShoppingListBotError::new_parsing_error(String::from(""), String::from("")))
         )
         .unwrap_or_else(|_| 3030);
-
+    println!("{}", port);
     Ok((todoist_token, project_id, client_ids, telegram_token, port))
 }
 
