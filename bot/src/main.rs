@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 extern crate byteorder;
 extern crate futures;
 extern crate serde;
@@ -78,7 +76,9 @@ fn init_logging() {
         "OFF" => LevelFilter::Off,
         _ => LevelFilter::Info
     };
-    TermLogger::init(log_level, Config::default()).unwrap();
+    if let Err(e) = TermLogger::init(log_level, Config::default()) {
+        println!("{}", e);
+    }
 
 }
 #[tokio::main]
