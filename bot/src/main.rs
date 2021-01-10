@@ -33,7 +33,7 @@ fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
         missings_var: format!("{}: {}", key, x),
     })
 }
-fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String), ShoppingListBotError> {
+fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String, i32), ShoppingListBotError> {
     let todoist_token = env_var("TODOIST_TOKEN")?;
     let project_id: i64 = env_var("PROJECT_ID")?
         .parse()
@@ -50,18 +50,24 @@ fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String), ShoppingListBot
         .map_err(|x| ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}",x)))?;
     
     let telegram_token = env_var("TELEGRAM_BOT_TOKEN")?;
-    Ok((todoist_token, project_id, client_ids, telegram_token))
+    let port = env_var("PORT")
+        .and_then(|x| 
+            x.parse::<i32>().map_err(|x| ShoppingListBotError::new_parsing_error(String::from(""), String::from("")))
+        )
+        .unwrap_or_else(3030);
+        
+    Ok((todoist_token, project_id, client_ids, telegram_token, port))
 }
 
 async fn run() -> Result<(), ShoppingListBotError> {
     let db_path = "./my.db";
-    let (todoist_token, project_id, client_ids, bot_token) = read_env_vars()?;
+    let (todoist_token, project_id, client_ids, bot_token, port) = read_env_vars()?;
 
     let db = get_storage(&db_path);
     let telegram_message_service = get_telegram_service(todoist_token, project_id, client_ids, db);
     let message_service = get_message_send_service(&bot_token);
     let routes = get_routes(telegram_message_service, message_service);
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
     Ok(())
 }
 
