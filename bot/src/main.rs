@@ -69,7 +69,7 @@ async fn run() -> Result<(), ShoppingListBotError> {
     let message_service = get_message_send_service(&bot_token);
     let routes = get_routes(telegram_message_service, message_service);
 
-    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
     Ok(())
 }
 
