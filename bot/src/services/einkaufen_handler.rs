@@ -15,13 +15,16 @@ impl EinkaufenCommandHandler {
         }
     }
 
-    pub async fn handle_message(&self, cmd_args: &str) -> Result<String, ShoppingListBotError> {
+    pub async fn handle_message(&self, cmd_args: &str) -> Result<Option<String>, ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
         self.api.add_tasks(&items, self.project_id).await?;
-        let message = if items.len() > 1
-        { String::from("Added 1 item")} else { format!("Added {} items", items.len()) };
+        let message = match items.len() {
+            0 => None,
+            1 => Some(String::from("Added 1 item")),
+            _ => Some(format!("Added {} items", items.len()))
+        };
         Ok(message)
     }
 }
