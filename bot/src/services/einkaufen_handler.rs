@@ -1,5 +1,6 @@
 use todoist::shopping_list_api::TodoistApi;
 use crate::errors::ShoppingListBotError;
+
 pub struct EinkaufenCommandHandler {
     api: TodoistApi,
     project_id: i64,
@@ -13,15 +14,16 @@ impl EinkaufenCommandHandler {
             project_id,
         }
     }
-    
-    pub async fn handle_message(&self, cmd_args: &str) -> Result<(), ShoppingListBotError> {
+
+    pub async fn handle_message(&self, cmd_args: &str) -> Result<String, ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
         self.api.add_tasks(&items, self.project_id).await?;
-        Ok(())
+        let message = if items.len() > 1
+        { String::from("Added 1 item")} else { format!("Added {} items", items.len()) };
+        Ok(message)
     }
-    
 }
 
 fn split_args(cmd_args: &str) -> Vec<&str> {

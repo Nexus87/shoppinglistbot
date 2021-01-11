@@ -1,12 +1,5 @@
 use hyper_tls::HttpsConnector;
-use hyper::{
-    Body,
-    client::HttpConnector,
-    Client,
-    Method,
-    Request,
-    header::HeaderValue,
-};
+use hyper::{Body, Client, Method, Request, client::HttpConnector, header::HeaderValue};
 use bytes::buf::ext::BufExt;
 use crate::requests::GetProjectsRequest;
 use crate::types::{

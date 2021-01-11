@@ -6,6 +6,7 @@ use crate::storage::Storage;
 use std::sync::Arc;
 use std::pin::Pin;
 use std::future::Future;
+use async_trait::async_trait;
 mod shopping_bot_message_service;
 mod einkaufen_handler;
 mod store_handler;
@@ -15,8 +16,9 @@ pub trait TelegramMessageService: Sync + Send {
     fn handle_message(&self, update: &Update) -> Pin<Box<dyn Future<Output = Result<Option<(MessageChat, String)>, ShoppingListBotError>> + Send>>;
 }
 
+ #[async_trait]
 pub trait MessageSendService: Sync + Send {
-    fn send_message(&self, chat: MessageChat, message: &String);
+    async fn send_message(&self, chat: MessageChat, message: &String);
 }
 pub fn get_telegram_service(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Arc<dyn TelegramMessageService + Send> {
     Arc::new(ShoppingBotMessageService::new(token, project_id, client_ids, db))
