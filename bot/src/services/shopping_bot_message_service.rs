@@ -45,12 +45,13 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     }
     None
 }
+
 #[derive(Clone)]
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
     einkaufen_handler: Arc<EinkaufenCommandHandler>,
     store_handler: Arc<StoreCommandHandler>,
-    db: Arc<dyn Storage>
+    db: Arc<dyn Storage>,
 }
 
 impl ShoppingBotMessageService {
@@ -71,25 +72,25 @@ impl ShoppingBotMessageService {
             return None;
         }
         if let Some((command, args)) = parse_message(&message.kind) {
-            match command { 
+            return match command {
                 Command::Einkaufen => {
-                    self.einkaufen_handler.handle_message(&args).await.unwrap();
-                    return None;
-                },
+                    let message = self.einkaufen_handler.handle_message(&args).await.unwrap();
+                    Some(message)
+                }
                 Command::TestStore => {
                     self.store_handler.handle_message(&args);
-                    return None;
-                },
-                Command::TestGet => return self.store_handler.handle_message(&args),
-                _ => return None
-            }
+                    None
+                }
+                Command::TestGet => self.store_handler.handle_message(&args),
+                _ => None
+            };
         }
         None
     }
 }
 
 impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) -> Pin<Box<dyn Future<Output= Result<Option<(MessageChat, String)>, ShoppingListBotError>>+ Send>> {
+    fn handle_message(&self, update: &Update) -> Pin<Box<dyn Future<Output=Result<Option<(MessageChat, String)>, ShoppingListBotError>> + Send>> {
         let update = update.clone();
         let api = self.clone();
         let result = async move {
@@ -102,7 +103,9 @@ impl TelegramMessageService for ShoppingBotMessageService {
                     }
                 }
                 api.db.set_last_update_id(message.chat.id(), update.id)?;
-                return Ok(api.handle(&message).await.map(|m| (message.chat.clone(), m)));
+                return Ok(api.handle(&message)
+                    .await
+                    .map(|m| (message.chat.clone(), m)));
             }
             Ok(None)
         };
