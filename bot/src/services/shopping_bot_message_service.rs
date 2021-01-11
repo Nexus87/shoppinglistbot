@@ -74,8 +74,7 @@ impl ShoppingBotMessageService {
         if let Some((command, args)) = parse_message(&message.kind) {
             return match command {
                 Command::Einkaufen => {
-                    let message = self.einkaufen_handler.handle_message(&args).await.unwrap();
-                    Some(message)
+                    return self.einkaufen_handler.handle_message(&args).await.unwrap();
                 }
                 Command::TestStore => {
                     self.store_handler.handle_message(&args);
