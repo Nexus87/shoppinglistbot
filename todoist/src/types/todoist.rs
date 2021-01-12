@@ -20,31 +20,15 @@ pub struct Project {
     pub indent: Integer,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct GetProjectData {
-    project: Project,
-    items: Vec<Item>,
-}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Item {
-    is_deleted: Integer,
-    date_string: String,
-    date_added: String,
-    item_order: Integer,
-    due_date: Option<DueDate>,
-    content: String,
-    id: Integer,
-    user_id: Integer,
-    date_lang: String,
-    assigned_by_uid: Integer,
-    in_history: Integer,
-    is_archived: Integer,
-    project_id: Integer,
-    collapsed: Integer,
-    indent: Integer,
-    checked: Integer,
-    priority: Integer,
+    pub order: Integer,
+    pub content: String,
+    pub id: Integer,
+    pub project_id: Integer,
+    pub priority: Integer,
+    pub assigner: Integer
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

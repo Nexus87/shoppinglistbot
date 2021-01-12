@@ -1,4 +1,6 @@
-use super::einkaufen_handler::EinkaufenCommandHandler;
+use super::{
+    einkaufen_handler::EinkaufenCommandHandler, einkaufsliste_handler::EinkauflisteCommandHandler,
+};
 use crate::errors::ShoppingListBotError;
 use crate::services::store_handler::StoreCommandHandler;
 use crate::services::TelegramMessageService;
@@ -19,6 +21,7 @@ pub enum Command {
     Einkaufen,
     TestStore,
     TestGet,
+    Einkaufsliste,
     None,
 }
 
@@ -29,13 +32,13 @@ impl From<&str> for Command {
             "/einkaufen" => Command::Einkaufen,
             "/store" => Command::TestStore,
             "/load" => Command::TestGet,
+            "/einkaufsliste" => Command::Einkaufsliste,
             _ => Command::None,
         }
     }
 }
 lazy_static! {
     static ref COMMAND_REGEX: Regex = Regex::new(r"^(?P<command>/[^@]+)(@[^\s]*)?").unwrap();
-    // static ref COMMAND_REGEX: Regex = Regex::new(r"^(\[^@]+)(@[^\s]*)?").unwrap();
 }
 
 fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
@@ -59,6 +62,7 @@ fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
     einkaufen_handler: Arc<EinkaufenCommandHandler>,
+    einkaufliste_handler: Arc<EinkauflisteCommandHandler>,
     store_handler: Arc<StoreCommandHandler>,
     db: Arc<dyn Storage>,
 }
@@ -70,11 +74,15 @@ impl ShoppingBotMessageService {
         client_ids: Vec<UserId>,
         db: Box<dyn Storage>,
     ) -> Self {
-        let api = TodoistApi::new(token);
+        let api = Arc::new(TodoistApi::new(token));
         let db: Arc<dyn Storage> = Arc::from(db);
         ShoppingBotMessageService {
             client_ids,
-            einkaufen_handler: Arc::new(EinkaufenCommandHandler::new(api, project_id)),
+            einkaufen_handler: Arc::new(EinkaufenCommandHandler::new(api.clone(), project_id)),
+            einkaufliste_handler: Arc::new(EinkauflisteCommandHandler::new(
+                api.clone(),
+                project_id,
+            )),
             db: db.clone(),
             store_handler: Arc::new(StoreCommandHandler::new(db)),
         }
@@ -87,9 +95,8 @@ impl ShoppingBotMessageService {
         }
         if let Some((command, args)) = parse_message(&message.kind) {
             return match command {
-                Command::Einkaufen => {
-                    return self.einkaufen_handler.handle_message(&args).await.unwrap();
-                }
+                Command::Einkaufen => self.einkaufen_handler.handle_message(&args).await.unwrap(),
+                Command::Einkaufsliste => self.einkaufliste_handler.handle_message().await.unwrap(),
                 Command::TestStore => {
                     self.store_handler.handle_message(&args);
                     None

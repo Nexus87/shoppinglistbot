@@ -17,6 +17,12 @@ pub struct GetProjectsRequest {
 }
 
 #[derive(Serialize, Debug, PartialEq)]
+pub struct GetDataRequest {
+    pub token: String,
+    pub project_id: Integer
+}
+
+#[derive(Serialize, Debug, PartialEq)]
 pub struct Task<'a> {
     content: &'a str,
     project_id: Integer,

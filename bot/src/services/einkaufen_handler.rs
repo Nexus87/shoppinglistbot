@@ -1,14 +1,16 @@
+use std::sync::Arc;
+
 use todoist::shopping_list_api::TodoistApi;
 use crate::errors::ShoppingListBotError;
 
 pub struct EinkaufenCommandHandler {
-    api: TodoistApi,
+    api: Arc<TodoistApi>,
     project_id: i64,
 }
 
 
 impl EinkaufenCommandHandler {
-    pub fn new(api: TodoistApi, project_id: i64) -> Self {
+    pub fn new(api: Arc<TodoistApi>, project_id: i64) -> Self {
         EinkaufenCommandHandler {
             api,
             project_id,
