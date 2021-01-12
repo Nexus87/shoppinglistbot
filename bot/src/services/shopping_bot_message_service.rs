@@ -1,15 +1,17 @@
-use crate::errors::ShoppingListBotError;
 use super::einkaufen_handler::EinkaufenCommandHandler;
-use todoist::shopping_list_api::TodoistApi;
-use telegram_bot::types::UserId;
-use crate::services::TelegramMessageService;
-use telegram_bot::types::Update;
-use crate::storage::Storage;
-use telegram_bot::{UpdateKind, Message, MessageChat, MessageKind};
+use crate::errors::ShoppingListBotError;
 use crate::services::store_handler::StoreCommandHandler;
-use std::sync::Arc;
+use crate::services::TelegramMessageService;
+use crate::storage::Storage;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
+use telegram_bot::types::Update;
+use telegram_bot::types::UserId;
+use telegram_bot::{Message, MessageChat, MessageKind, UpdateKind};
+use todoist::shopping_list_api::TodoistApi;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Command {
@@ -31,11 +33,18 @@ impl From<&str> for Command {
         }
     }
 }
+lazy_static! {
+    static ref COMMAND_REGEX: Regex = Regex::new(r"^(?P<command>/[^@]+)(@[^\s]*)?").unwrap();
+    // static ref COMMAND_REGEX: Regex = Regex::new(r"^(\[^@]+)(@[^\s]*)?").unwrap();
+}
 
 fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
     if let MessageKind::Text { ref data, .. } = message {
         let split: Vec<&str> = data.splitn(2, ' ').collect();
-        let command = Command::from(*split.get(0)?);
+        let command = match COMMAND_REGEX.captures(split.get(0)?) {
+            None => Command::None,
+            Some(capture) => Command::from(&capture["command"]),
+        };
         let args = match command {
             Command::None => data.clone(),
             _ => split.get(1).cloned().unwrap_or_default().to_string(),
@@ -55,7 +64,12 @@ pub struct ShoppingBotMessageService {
 }
 
 impl ShoppingBotMessageService {
-    pub fn new(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Self {
+    pub fn new(
+        token: String,
+        project_id: i64,
+        client_ids: Vec<UserId>,
+        db: Box<dyn Storage>,
+    ) -> Self {
         let api = TodoistApi::new(token);
         let db: Arc<dyn Storage> = Arc::from(db);
         ShoppingBotMessageService {
@@ -81,7 +95,7 @@ impl ShoppingBotMessageService {
                     None
                 }
                 Command::TestGet => self.store_handler.handle_message(&args),
-                _ => None
+                _ => None,
             };
         }
         None
@@ -89,7 +103,14 @@ impl ShoppingBotMessageService {
 }
 
 impl TelegramMessageService for ShoppingBotMessageService {
-    fn handle_message(&self, update: &Update) -> Pin<Box<dyn Future<Output=Result<Option<(MessageChat, String)>, ShoppingListBotError>> + Send>> {
+    fn handle_message(
+        &self,
+        update: &Update,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Option<(MessageChat, String)>, ShoppingListBotError>> + Send,
+        >,
+    > {
         let update = update.clone();
         let api = self.clone();
         let result = async move {
@@ -102,7 +123,8 @@ impl TelegramMessageService for ShoppingBotMessageService {
                     }
                 }
                 api.db.set_last_update_id(message.chat.id(), update.id)?;
-                return Ok(api.handle(&message)
+                return Ok(api
+                    .handle(&message)
                     .await
                     .map(|m| (message.chat.clone(), m)));
             }
@@ -112,7 +134,6 @@ impl TelegramMessageService for ShoppingBotMessageService {
         Box::pin(result)
     }
 }
-
 
 macro_rules! parse_message_test {
     ($($name:ident: $value:expr,)*) => {
@@ -141,7 +162,9 @@ macro_rules! parse_message_test {
 parse_message_test! {
     einkaufen_args: ("/einkaufen bla bla", (Command::Einkaufen, "bla bla")),
     einkaufen_no_args: ("/einkaufen", (Command::Einkaufen, "")),
+    einkaufen_at:("/einkaufen@foo", (Command::Einkaufen, "")),
     config_args: ("/config bla bla", (Command::Config, "bla bla")),
     config_no_args: ("/config", (Command::Config, "")),
     none: ("bla bla", (Command::None, "bla bla")),
+    einkaufen_no_slash: ("einkaufen bla bla", (Command::None, "einkaufen bla bla")),
 }
