@@ -8,6 +8,7 @@ use std::pin::Pin;
 use std::future::Future;
 use async_trait::async_trait;
 mod shopping_bot_message_service;
+mod einkaufsliste_handler;
 mod einkaufen_handler;
 mod store_handler;
 mod telegram_message_send_service;
