@@ -1,6 +1,5 @@
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use super::einkaufen_actor::EinkaufenActor;
-use actix::prelude::*;
 use todoist::shopping_list_api::TodoistApi;
 use telegram_bot::{
     types::Update,
@@ -9,8 +8,8 @@ use telegram_bot::{
     UpdateKind,
     MessageKind,
 };
-use storage::{SledActor, CheckAndUpdate};
-use services::einkaufen_actor::Einkaufen;
+use crate::storage::{SledActor, CheckAndUpdate};
+use crate::services::einkaufen_actor::Einkaufen;
 use futures::future::Either;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -59,7 +58,7 @@ impl Message for HandleCommand {
 pub struct ShoppingBotMessageService {
     client_ids: Vec<UserId>,
     einkaufen_handler: Addr<EinkaufenActor>,
-    db: Addr<SledActor>,
+    db: SledActor,
 }
 
 fn done() -> impl Future<Item=(), Error=ShoppingListBotError> {
@@ -106,17 +105,8 @@ impl ShoppingBotMessageService {
         }
         Either::B(done())
     }
-}
 
-impl Actor for ShoppingBotMessageService {
-    type Context = Context<Self>;
-}
-
-impl Handler<HandleCommand> for ShoppingBotMessageService {
-    type Result = Box<Future<Item=(), Error=ShoppingListBotError>>;
-
-    fn handle(&mut self, msg: HandleCommand, _: &mut Context<Self>) -> Self::Result {
-        let update = msg.update;
+    async fn handle(&mut self, update: Update) -> Result<(), ShoppingListBotError> {
         if let UpdateKind::Message(message) = update.kind {
             let mut self2 = self.clone();
             let result = self.db
@@ -130,10 +120,9 @@ impl Handler<HandleCommand> for ShoppingBotMessageService {
                 });
             return Box::new(result);
         }
-        empty_response()
+        Ok(())
     }
 }
-
 
 macro_rules! parse_message_test {
     ($($name:ident: $value:expr,)*) => {

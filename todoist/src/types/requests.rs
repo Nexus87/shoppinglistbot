@@ -1,7 +1,7 @@
-use types::primitives::Integer;
 use serde_json::Error;
 use uuid::Uuid;
 use serde::Serialize;
+use crate::primitives::Integer;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetProjectDataRequest {

@@ -16,7 +16,6 @@ extern crate bincode;
 extern crate core;
 extern crate actix_web;
 extern crate actix;
-extern crate hyper;
 
 mod errors;
 mod routes;
@@ -61,7 +60,7 @@ fn read_env_vars() -> Result<(String, i64, Vec<UserId>, String), ShoppingListBot
     Ok((todoist_token, project_id, client_ids, telegram_token))
 }
 
-fn run() -> Result<(), ShoppingListBotError> {
+async fn run() -> Result<(), ShoppingListBotError> {
     let db_path = "./my.db";
     let (todoist_token, project_id, client_ids, bot_token) = read_env_vars()?;
 
@@ -96,8 +95,8 @@ fn init_logging() {
         println!("{:?}", e);
     }
 }
-
-fn main() {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     init_logging();
 
     if let Err(e) = run() {

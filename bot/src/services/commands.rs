@@ -1,6 +1,5 @@
 use todoist::{TodoistApi, ShoppingListApi};
-use actix::prelude::*;
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 //
 //pub struct StoreCommandHandler {
 //}
@@ -23,9 +22,6 @@ pub struct Einkaufen {
     args: String
 }
 
-impl Message for Einkaufen {
-    type Result = Result<(), ShoppingListBotError>;
-}
 
 // pub struct Load {}
 // pub struct Store {
@@ -43,10 +39,6 @@ impl Message for Einkaufen {
 pub struct CommandActor {
     api: TodoistApi,
     project_id: i64,
-}
-
-impl Actor for CommandActor {
-    type Context = Context<Self>;
 }
 
 impl Handler<Einkaufen> for CommandActor {

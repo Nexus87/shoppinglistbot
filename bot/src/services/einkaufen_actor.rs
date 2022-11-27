@@ -1,16 +1,10 @@
 use todoist::shopping_list_api::TodoistApi;
 use todoist::shopping_list_api::ShoppingListApi;
 use tokio::runtime::Runtime;
-use actix::{Actor, Handler, Context};
-use actix::Message;
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 
 pub struct Einkaufen {
     pub args: String
-}
-
-impl Message for Einkaufen {
-    type Result = Result<(), ShoppingListBotError>;
 }
 
 pub struct EinkaufenActor {
@@ -18,26 +12,23 @@ pub struct EinkaufenActor {
     project_id: i64,
 }
 
-impl Actor for EinkaufenActor {
-    type Context = Context<Self>;
-}
+impl EinkaufenActor {
 
-impl Handler<Einkaufen> for EinkaufenActor {
-    type Result = Result<(), ShoppingListBotError>;
-
-    fn handle(&mut self, msg: Einkaufen, _: &mut Context<Self>) -> Self::Result {
+    async fn handleEinkaufen(&mut self, msg: Einkaufen) -> Result<String, ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(msg.args.as_str());
         info!("With args {:?}", items);
-        let future = self.api.add_tasks(&items, self.project_id);
-        let mut runtime = Runtime::new().expect("failed to start new Runtime");
-        runtime
-            .block_on(future)
-            .expect("shutdown cannot error");
+        self.api.add_tasks(&items, self.project_id)
+            .await?;
 
-        if items.len() > 0
-        { Some(format!("Added {} items", items.len())); } else { Some("Nothing to add".to_string()); }
-        Ok(())
+        let message = if items.len() > 0
+        {
+            format!("Added {} items", items.len())
+        } else {
+            "Nothing to add".to_string()
+        };
+        
+        Ok(message)
     }
 }
 

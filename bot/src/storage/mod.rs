@@ -1,5 +1,4 @@
-use actix::prelude::*;
-use errors::ShoppingListBotError;
+use crate::errors::ShoppingListBotError;
 use sled::Db;
 use telegram_bot::types::ChatId;
 use bincode::{serialize, deserialize};
@@ -7,6 +6,19 @@ use serde::de::DeserializeOwned;
 
 pub struct SledActor {
     db: Db,
+}
+
+pub struct CheckAndUpdate {
+    pub chat_id: ChatId,
+    pub update_id: i64
+}
+
+pub struct Write {
+    pub chat_id: ChatId,
+    pub value: String
+}
+pub struct Read {
+    pub chat_id: ChatId
 }
 
 impl SledActor {
@@ -30,38 +42,8 @@ impl SledActor {
         let ret = serialize(&value)?;
         Ok(ret)
     }
-}
-
-impl Actor for SledActor {
-    type Context = SyncContext<Self>;
-}
-pub struct CheckAndUpdate {
-    pub chat_id: ChatId,
-    pub update_id: i64
-}
-
-pub struct Write {
-    pub chat_id: ChatId,
-    pub value: String
-}
-pub struct Read {
-    pub chat_id: ChatId
-}
-
-
-impl Message for CheckAndUpdate {
-    type Result = Result<bool, ShoppingListBotError>;
-}
-impl Message for Write {
-    type Result = Result<(), ShoppingListBotError>;
-}
-impl Message for Read {
-    type Result = Result<Option<String>, ShoppingListBotError>;
-}
-
-impl Handler<CheckAndUpdate> for SledActor {
-    type Result = Result<bool, ShoppingListBotError>;
-    fn handle(&mut self, msg: CheckAndUpdate, _: &mut SyncContext<Self>) -> Result<bool, ShoppingListBotError> {
+    
+    fn checkAndUpdate(&self, msg: CheckAndUpdate) ->  Result<bool, ShoppingListBotError> {
         let chat = SledActor::chat_id_to_u8(msg.chat_id);
         let update_id = SledActor::serialize_i64(msg.update_id)?;
         let previous = self.db.get(chat)?;
@@ -75,21 +57,15 @@ impl Handler<CheckAndUpdate> for SledActor {
         self.db.cas(chat, previous, Some(update_id))?.unwrap();
         Ok(true)
     }
-}
-impl Handler<Write> for SledActor {
-    type Result = Result<(), ShoppingListBotError>;
 
-    fn handle(&mut self, msg: Write, _: &mut SyncContext<Self>) -> Result<(), ShoppingListBotError> {
+    fn setValue(&self, msg: Write) -> Result<(), ShoppingListBotError> {
         let key = serialize(&msg.chat_id)?;
         let value = serialize(&msg.value)?;
-        self.db.set(key, value)?;
+        self.db.insert(key, value)?;
         Ok(())
     }
-}
-impl Handler<Read> for SledActor {
-    type Result = Result<Option<String>, ShoppingListBotError>;
-
-    fn handle(&mut self, msg: Read, _: &mut SyncContext<Self>) -> Result<Option<String>, ShoppingListBotError> {
+    
+    fn readValue(&self, msg: Read) -> Result<Option<String>, ShoppingListBotError> {
         let key = serialize(&msg.chat_id)?;
         let value = self.db.get(key)?;
         let ret = match value {
