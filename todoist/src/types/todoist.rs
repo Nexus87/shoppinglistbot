@@ -2,33 +2,34 @@ use crate::types::primitives::Integer;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct GetProjectsResponse {
-    pub projects: Vec<Project>,
-    pub full_sync: bool,
-    pub sync_token: String,
+    pub results: Vec<Project>,
+    pub next_cursor: Option<String>
+}
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct GetTasksResponse {
+    pub results: Vec<Item>,
+    pub next_cursor: Option<String>
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Project {
-    pub is_archived: Integer,
-    pub color: Integer,
-    pub shared: bool,
-    #[serde(default)]
-    pub inbox_project: bool,
-    pub id: Integer,
+    pub child_order: Integer,
+    pub is_collapsed: bool,
+    pub color: String,
+    pub id: String,
+    pub is_archived: bool,
+    pub is_deleted: bool,
     pub name: String,
-    pub item_order: Integer,
-    pub indent: Integer,
+    pub view_style: String
 }
 
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Item {
-    pub order: Integer,
     pub content: String,
-    pub id: Integer,
-    pub project_id: Integer,
+    pub id: String,
+    pub project_id: String,
     pub priority: Integer,
-    pub assigner: Integer
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -39,17 +40,17 @@ pub struct DueDate {
     timezone: Option<String>,
 }
 
-impl Default for Project {
-    fn default() -> Project {
-        Project  {
-            is_archived: 0,
-            color: 0,
-            shared: false,
-            inbox_project: false,
-            id: 0,
-            name: "".to_string(),
-            item_order: 0,
-            indent: 0
-        }
-    }
-}
+// impl Default for Project {
+//     fn default() -> Project {
+//         Project  {
+//             is_archived: 0,
+//             color: 0,
+//             shared: false,
+//             inbox_project: false,
+//             id: 0,
+//             name: "".to_string(),
+//             item_order: 0,
+//             indent: 0
+//         }
+//     }
+// }
