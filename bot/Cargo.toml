@@ -2,23 +2,22 @@
 name = "shoppinglist"
 version = "0.1.0"
 authors = ["Nexuz <nexxuz0@googlemail.com>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
-telegram-bot = { git = "https://github.com/Nexus87/telegram-bot", branch = "next" }
-tokio = { version = "1.52.1", features = ["macros"] }
-futures = "0.3.32"
+telegram-bot = "0.8.0"
+axum = { version = "0.8" , features = ["macros"]}
+tokio = { version = "1.52.1", features = ["full"] }
 todoist = { version = "=0.1.0", path = "../todoist" }
-serde = "1.0.228"
-serde_json = "1.0.149"
-byteorder = "1.5.0"
+#serde = "1.0.228"
+#byteorder = "1.5.0"
 sled = "0.34.7"
-failure = "0.1.8"
+thiserror = "2.0.18"
 log = "0.4.29"
 simplelog = "0.12.2"
-bincode = "3.0.0"
-hyper = "1.9.0"
-async-trait = "0.1.42"
-actix-web = "4.1.13"
+#bincode = "3.0.0"
 regex = "1.4.3"
-lazy_static = "1.4.0"
+once_cell = "1.21.4"
+rocksdb = "0.24.0"
+reqwest = "0.13.2"
+#lazy_static = "1.4.0"

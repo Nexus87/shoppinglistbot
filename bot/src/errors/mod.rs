@@ -1,19 +1,21 @@
+use std::string::FromUtf8Error;
 use sled;
+use thiserror::Error;
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum ShoppingListBotError {
-    #[fail(display = "Error in data storage: {}", error_message)]
+    #[error("Error in data storage: {error_message:?}")]
     StorageError { error_message: String },
-    #[fail(display = "Missing env variables: {}", missings_var)]
+    #[error("Missing env variables: {missings_var:?}")]
     InitError { missings_var: String },
-    #[fail(display = "Parsing of {} failed: {}", name, err)]
+    #[error("Parsing of {name:?} failed: {err:?}")]
     ParsingError { name: String, err: String },
-    #[fail(display = "Serialization failed: {}", err)]
-    SerializationError { err: String },
-    #[fail(display = "Hyper failed: {}", err)]
-    HyperError { err: String },
-    #[fail(display = "IO operation failed: {}", err)]
+    #[error(transparent)]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("IO operation failed: {err:?}")]
     IoError { err: String },
+    #[error(transparent)]
+    Other(#[from] FromUtf8Error),
 }
 
 impl ShoppingListBotError {
@@ -29,17 +31,11 @@ impl From<sled::Error> for ShoppingListBotError {
         }
     }
 }
-impl From<bincode::Error> for ShoppingListBotError {
-    fn from(err: Box<bincode::ErrorKind>) -> Self {
-        ShoppingListBotError::SerializationError {
-            err: err.to_string(),
-        }
-    }
-}
-impl From<hyper::Error> for ShoppingListBotError {
-    fn from(err: hyper::Error) -> Self {
-        ShoppingListBotError::HyperError {
-            err: err.to_string(),
+
+impl From<rocksdb::Error> for ShoppingListBotError {
+    fn from(err: rocksdb::Error) -> ShoppingListBotError {
+        ShoppingListBotError::StorageError {
+            error_message: format!("{}", err),
         }
     }
 }

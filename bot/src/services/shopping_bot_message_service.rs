@@ -5,11 +5,11 @@ use crate::errors::ShoppingListBotError;
 use crate::services::store_handler::StoreCommandHandler;
 use crate::services::TelegramMessageService;
 use crate::storage::Storage;
-use lazy_static::lazy_static;
-use regex::Regex;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use telegram_bot::types::Update;
 use telegram_bot::types::UserId;
 use telegram_bot::{Message, MessageChat, MessageKind, UpdateKind};
@@ -37,14 +37,14 @@ impl From<&str> for Command {
         }
     }
 }
-lazy_static! {
-    static ref COMMAND_REGEX: Regex = Regex::new(r"^(?P<command>/[^@]+)(@[^\s]*)?").unwrap();
-}
+static COMMANDS: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^(?P<command>/[^@]+)(@[^\s]*)?").unwrap()
+});
 
 fn parse_message(message: &MessageKind) -> Option<(Command, String)> {
-    if let MessageKind::Text { ref data, .. } = message {
+    if let MessageKind::Text { data, .. } = message {
         let split: Vec<&str> = data.splitn(2, ' ').collect();
-        let command = match COMMAND_REGEX.captures(split.get(0)?) {
+        let command = match COMMANDS.captures(split.get(0)?) {
             None => Command::None,
             Some(capture) => Command::from(&capture["command"]),
         };
@@ -70,7 +70,7 @@ pub struct ShoppingBotMessageService {
 impl ShoppingBotMessageService {
     pub fn new(
         token: String,
-        project_id: i64,
+        project_id: &String,
         client_ids: Vec<UserId>,
         db: Box<dyn Storage>,
     ) -> Self {

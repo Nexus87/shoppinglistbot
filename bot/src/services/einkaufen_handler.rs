@@ -5,12 +5,13 @@ use crate::errors::ShoppingListBotError;
 
 pub struct EinkaufenCommandHandler {
     api: Arc<TodoistApi>,
-    project_id: i64,
+    project_id: String,
 }
 
 
 impl EinkaufenCommandHandler {
-    pub fn new(api: Arc<TodoistApi>, project_id: i64) -> Self {
+    pub fn new(api: Arc<TodoistApi>, project_id: &String) -> Self {
+        let project_id = project_id.clone();
         EinkaufenCommandHandler {
             api,
             project_id,
@@ -21,7 +22,7 @@ impl EinkaufenCommandHandler {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
-        self.api.add_tasks(&items, self.project_id).await?;
+        self.api.add_tasks(&items, &self.project_id).await?;
         let message = match items.len() {
             0 => None,
             1 => Some(String::from("Added 1 item")),

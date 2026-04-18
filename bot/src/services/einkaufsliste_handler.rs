@@ -5,19 +5,19 @@ use todoist::shopping_list_api::TodoistApi;
 
 pub struct EinkauflisteCommandHandler {
     api: Arc<TodoistApi>,
-    project_id: i64,
+    project_id: String,
 }
 
 impl EinkauflisteCommandHandler {
-    pub fn new(api: Arc<TodoistApi>, project_id: i64) -> Self {
-        EinkauflisteCommandHandler { api, project_id }
+    pub fn new(api: Arc<TodoistApi>, project_id: &String) -> Self {
+        EinkauflisteCommandHandler { api, project_id: project_id.clone() }
     }
 
     pub async fn handle_message(&self) -> Result<Option<String>, ShoppingListBotError> {
         info!("Handle command /einkaufsliste");
         let message = self
             .api
-            .get_tasks(self.project_id)
+            .get_tasks(&self.project_id)
             .await?
             .iter()
             .map(|i| i.content.as_str())
