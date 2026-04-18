@@ -1,25 +1,28 @@
-use errors::ShoppingListBotError;
-use telegram_bot::{Update, UserId, MessageChat};
-use services::shopping_bot_message_service::ShoppingBotMessageService;
-use services::telegram_message_send_service::TelegramMessageSendService;
-use storage::Storage;
+use std::sync::Arc;
+use crate::errors::ShoppingListBotError;
+use crate::services::shopping_bot_message_service::ShoppingBotMessageService;
+use crate::services::telegram_message_send_service::TelegramMessageSendService;
+use crate::storage::Storage;
+use teloxide::prelude::{Update, UserId};
+use teloxide::types::Chat;
 
-mod shopping_bot_message_service;
+pub mod shopping_bot_message_service;
+mod einkaufsliste_handler;
 mod einkaufen_handler;
 mod store_handler;
-mod telegram_message_send_service;
+pub mod telegram_message_send_service;
 
-pub trait TelegramMessageService: Sync + Send{
-    fn handle_message(&self, update: &Update) -> Result<Option<(MessageChat, String)>, ShoppingListBotError>;
+pub trait TelegramMessageService {
+    async fn handle_message(&self, update: &Update) -> Result<Option<(Chat, String)>, ShoppingListBotError>;
 }
 
-pub trait MessageSendService: Sync + Send {
-    fn send_message(&self, chat: MessageChat, message: &String);
+pub trait MessageSendService {
+    async fn send_message(&self, chat: Chat, message: &String);
 }
-pub fn get_telegram_service(token: String, project_id: i64, client_ids: Vec<UserId>, db: Box<dyn Storage>) -> Box<dyn TelegramMessageService> {
-    Box::new(ShoppingBotMessageService::new(token, project_id, client_ids, db))
+pub fn get_telegram_service(token: String, project_id: &String, client_ids: Vec<UserId>, db: Arc<dyn Storage>) -> ShoppingBotMessageService {
+    ShoppingBotMessageService::new(token, project_id, client_ids, db)
 }
 
-pub fn get_message_send_service(token: &String) -> Box<dyn MessageSendService> {
-    Box::new(TelegramMessageSendService::new(token))
+pub fn get_message_send_service(token: &String) -> TelegramMessageSendService {
+    TelegramMessageSendService::new(token)
 }

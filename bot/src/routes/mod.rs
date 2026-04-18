@@ -1,22 +1,25 @@
-use rocket_contrib::json::Json;
-use telegram_bot::{Update};
-use rocket::State;
-use rocket::Route;
-use services::{TelegramMessageService, MessageSendService};
+use std::sync::Arc;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::Json;
+use axum::response::IntoResponse;
+use teloxide::types::{Update};
+use crate::services::{MessageSendService, TelegramMessageService};
+use crate::AppState;
 
-
-#[post("/webhook", format = "json", data = "<payload>")]
-fn telegram_webhook(payload: Json<Update>, telegram_service: State<Box<dyn TelegramMessageService>>, 
-                    message_send_service: State<Box<dyn MessageSendService>>) -> Result<(), ()> {
-    match telegram_service.handle_message(&payload) {
-        Err(e) => error!("{}", e),
-        Ok(Some((c, m))) => message_send_service.send_message(c, &m),
-        _ => ()
+#[axum::debug_handler]
+pub async fn telegram_webhook(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Update>,
+) -> impl IntoResponse  {
+        let res = state.telegram_service.handle_message(&payload).await;
+    match res {
+        Err(e) => error!("{:#?}", e),
+        Ok(Some((c, m))) => {
+            println!("{}", m);
+            state.message_send_service.send_message(c, &m).await;
+        }
+        _ => (),
     }
-
-    Ok(())
-}
-
-pub fn get_routes() -> Vec<Route> {
-    routes![telegram_webhook]
+    StatusCode::OK
 }

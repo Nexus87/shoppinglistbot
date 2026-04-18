@@ -1,24 +1,26 @@
+use std::string::FromUtf8Error;
 use sled;
-use std::error::Error;
+use thiserror::Error;
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum ShoppingListBotError {
-    #[fail(display = "Error in data storage: {}", error_message)]
+    #[error("Error in data storage: {error_message:?}")]
     StorageError { error_message: String },
-    #[fail(display = "Missing env variables: {}", missings_var)]
+    #[error("Missing env variables: {missings_var:?}")]
     InitError { missings_var: String },
-    #[fail(display = "Parsing of {} failed: {}", name, err)]
+    #[error("Parsing of {name:?} failed: {err:?}")]
     ParsingError { name: String, err: String },
-    #[fail(display = "Serialization failed: {}", err)]
-    SerializationError {err: String}
+    #[error(transparent)]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("IO operation failed: {err:?}")]
+    IoError { err: String },
+    #[error(transparent)]
+    Other(#[from] FromUtf8Error),
 }
 
 impl ShoppingListBotError {
     pub fn new_parsing_error(name: String, err: String) -> Self {
-        ShoppingListBotError::ParsingError {
-            name,
-            err
-        }
+        ShoppingListBotError::ParsingError { name, err }
     }
 }
 
@@ -29,10 +31,19 @@ impl From<sled::Error> for ShoppingListBotError {
         }
     }
 }
-impl From<bincode::Error> for ShoppingListBotError {
-    fn from(err: Box<bincode::ErrorKind>) -> Self {
-        ShoppingListBotError::SerializationError {
-            err: err.description().to_string()
+
+impl From<rocksdb::Error> for ShoppingListBotError {
+    fn from(err: rocksdb::Error) -> ShoppingListBotError {
+        ShoppingListBotError::StorageError {
+            error_message: format!("{}", err),
+        }
+    }
+}
+
+impl From<std::io::Error> for ShoppingListBotError {
+    fn from(err: std::io::Error) -> Self {
+        ShoppingListBotError::IoError {
+            err: err.to_string(),
         }
     }
 }

@@ -1,37 +1,35 @@
+use std::sync::Arc;
+
 use todoist::shopping_list_api::TodoistApi;
-use todoist::shopping_list_api::ShoppingListApi;
-use futures::prelude::*;
-use futures::sync::oneshot::spawn;
-use tokio::runtime::Runtime;
+use crate::errors::ShoppingListBotError;
+
 pub struct EinkaufenCommandHandler {
-    api: TodoistApi,
-    project_id: i64,
+    api: Arc<TodoistApi>,
+    project_id: String,
 }
 
 
 impl EinkaufenCommandHandler {
-    pub fn new(api: TodoistApi, project_id: i64) -> Self {
+    pub fn new(api: Arc<TodoistApi>, project_id: &String) -> Self {
+        let project_id = project_id.clone();
         EinkaufenCommandHandler {
             api,
             project_id,
         }
     }
-    
-    pub fn handle_message(&self, cmd_args: &str) -> Option<String> {
+
+    pub async fn handle_message(&self, cmd_args: &str) -> Result<Option<String>, ShoppingListBotError> {
         info!("Handle command /einkaufen");
         let items = split_args(cmd_args);
         info!("With args {:?}", items);
-        let future = self.api.add_tasks(&items, self.project_id);
-        let mut runtime = Runtime::new().expect("failed to start new Runtime");
-        runtime
-            .block_on(future)
-            .expect("shutdown cannot error");
-        
-        if items.len() > 0 
-            {Some(format!("Added {} items", items.len() )) }
-            else {Some("Nothing to add".to_string())} 
+        self.api.add_tasks(&items, &self.project_id).await?;
+        let message = match items.len() {
+            0 => None,
+            1 => Some(String::from("Added 1 item")),
+            _ => Some(format!("Added {} items", items.len()))
+        };
+        Ok(message)
     }
-    
 }
 
 fn split_args(cmd_args: &str) -> Vec<&str> {

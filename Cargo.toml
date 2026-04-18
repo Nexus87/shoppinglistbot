@@ -1,2 +1,3 @@
 [workspace]
 members = ["todoist", "bot"]
+resolver = "3"
