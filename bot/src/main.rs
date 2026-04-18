@@ -1,4 +1,3 @@
-extern crate telegram_bot;
 extern crate todoist;
 extern crate tokio;
 #[macro_use]
@@ -23,8 +22,8 @@ use services::{get_message_send_service, get_telegram_service};
 use simplelog::*;
 use std::env;
 use std::sync::Arc;
+use teloxide::prelude::UserId;
 use storage::get_storage;
-use telegram_bot::{Integer, UserId};
 
 fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
     env::var(key).map_err(|x| ShoppingListBotError::InitError {
@@ -34,19 +33,16 @@ fn env_var(key: &str) -> Result<String, ShoppingListBotError> {
 
 fn read_env_vars() -> Result<(String, String, Vec<UserId>, String, u16), ShoppingListBotError> {
     let todoist_token = env_var("TODOIST_TOKEN")?;
-    let project_id: String = env_var("PROJECT_ID")?.parse().map_err(|x| {
-        ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}", x))
-    })?;
+    let project_id: String = env_var("PROJECT_ID")?;
 
     let client_ids: Result<Vec<UserId>, _> = env_var("CLIENT_IDS")
         .unwrap_or_else(|_| String::from(""))
         .split(',')
-        .map(|x| x.parse::<Integer>())
-        .map(|x: Result<Integer, _>| x.map(From::from))
+        .map(|x| x.trim().parse::<u64>().map(|x| {UserId(x)}))
         .collect();
 
     let client_ids = client_ids.map_err(|x| {
-        ShoppingListBotError::new_parsing_error(String::from("PROJECT_ID"), format!("{}", x))
+        ShoppingListBotError::new_parsing_error(String::from("CLIENT_IDS"), format!("{}", x))
     })?;
 
     let telegram_token = env_var("TELEGRAM_BOT_TOKEN")?;

@@ -3,8 +3,8 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
+use teloxide::types::{Update};
 use crate::services::{MessageSendService, TelegramMessageService};
-use telegram_bot::Update;
 use crate::AppState;
 
 #[axum::debug_handler]

@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use rocksdb::DB;
-use telegram_bot::ChatId;
+use teloxide::prelude::ChatId;
+use teloxide::types::UpdateId;
 use crate::errors::ShoppingListBotError;
 use crate::storage::Storage;
 
@@ -15,13 +16,13 @@ impl RocksDbStorage {
     }
 }
 impl Storage for RocksDbStorage {
-    fn get_last_update_id(&self, chat: ChatId) -> Result<Option<i64>, ShoppingListBotError> {
+    fn get_last_update_id(&self, chat: ChatId) -> Result<Option<UpdateId>, ShoppingListBotError> {
         let value = self.db.get(format!("last_update_id:{}", chat))?;
         if value == None {
             return Ok(None);
         }
         let update_id = String::from_utf8(value.unwrap())
-            .map(|s| i64::from_str(&s))
+            .map(|s| u32::from_str(&s))
             .map_err(|_| ShoppingListBotError::StorageError {
                 error_message: String::from("cannot parse value"),
             })?
@@ -29,12 +30,12 @@ impl Storage for RocksDbStorage {
                 error_message: String::from("cannot parse value"),
             })?;
         trace!("Read update_id {}", update_id);
-        Ok(Some(update_id))
+        Ok(Some(UpdateId(update_id)))
 
     }
 
-    fn set_last_update_id(&self, chat: ChatId, update_id: i64) -> Result<(), ShoppingListBotError> {
-        self.db.put(format!("last_update_id:{}", chat), update_id.to_string())?;
+    fn set_last_update_id(&self, chat: ChatId, update_id: UpdateId) -> Result<(), ShoppingListBotError> {
+        self.db.put(format!("last_update_id:{}", chat), update_id.0.to_string())?;
         Ok(())
     }
 

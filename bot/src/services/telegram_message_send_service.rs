@@ -1,18 +1,20 @@
-use telegram_bot::{prelude::*, Api, MessageChat};
+use teloxide::Bot;
+use teloxide::prelude::Requester;
+use teloxide::types::Chat;
 
 pub struct TelegramMessageSendService {
-    api: Api,
+    api: Bot,
 }
 
 impl TelegramMessageSendService {
     pub fn new(token: &String) -> Self {
-        let api = Api::new(token);
+        let api = Bot::new(token);
         TelegramMessageSendService { api }
     }
 }
 impl super::MessageSendService for TelegramMessageSendService {
-    async fn send_message(&self, chat: MessageChat, message: &String) {
-        if let Err(e) = self.api.send(chat.text(message)).await {
+    async fn send_message(&self, chat: Chat, message: &String) {
+        if let Err(e) = self.api.send_message(chat.id, message).await {
             error!("{}", e)
         };
     }

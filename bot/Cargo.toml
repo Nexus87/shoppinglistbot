@@ -5,7 +5,7 @@ authors = ["Nexuz <nexxuz0@googlemail.com>"]
 edition = "2024"
 
 [dependencies]
-telegram-bot = "0.8.0"
+#telegram-bot = "0.8.0"
 axum = { version = "0.8" , features = ["macros"]}
 tokio = { version = "1.52.1", features = ["full"] }
 todoist = { version = "=0.1.0", path = "../todoist" }
@@ -21,3 +21,5 @@ once_cell = "1.21.4"
 rocksdb = "0.24.0"
 reqwest = "0.13.2"
 #lazy_static = "1.4.0"
+teloxide = "0.17.0"
+rstest = { version = "0.26.1", features = ["default"]}
