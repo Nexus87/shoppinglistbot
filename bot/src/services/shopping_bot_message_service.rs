@@ -10,7 +10,7 @@ use regex::Regex;
 use std::sync::Arc;
 use rstest::rstest;
 use teloxide::prelude::*;
-use teloxide::types::{Chat, MediaKind, MessageCommon, MessageKind, UpdateKind};
+use teloxide::types::{Chat, MediaKind, MediaText, MessageCommon, MessageKind, UpdateKind};
 use todoist::shopping_list_api::TodoistApi;
 
 #[derive(PartialEq, Eq, Hash, Debug)]
